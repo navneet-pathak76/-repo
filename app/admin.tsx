@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
 import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -8,7 +10,8 @@ export default function Admin(){
  const [rate,setRate]=useState("110");
  const [address,setAddress]=useState("Paste approved payment address");
  const [qr,setQr]=useState("QR image URL");
- const save=()=>Alert.alert("Saved","Connect Firestore to persist these values.");
+ useEffect(()=>{if(!db)return;return onSnapshot(doc(db,"appSettings","public"),snap=>{if(snap.exists()){const d=snap.data();setRate(String(d.rate??110));setAddress(String(d.paymentAddress??""));setQr(String(d.qrUrl??""))}})},[]);
+ const save=async()=>{if(!db)return Alert.alert("Firebase not configured","Add Firebase credentials first.");try{await setDoc(doc(db,"appSettings","public"),{rate:Number(rate)||110,paymentAddress:address.trim(),qrUrl:qr.trim(),updatedAt:new Date().toISOString()},{merge:true});Alert.alert("Saved","Public settings updated.")}catch(e){Alert.alert("Save failed","Make sure this account is seeded as an admin in Firestore.")}};
  return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.wrap}>
   <Text style={s.title}>Admin Panel</Text>
   <Text style={s.sub}>Application configuration</Text>
@@ -17,7 +20,7 @@ export default function Admin(){
   <Field label="QR Image URL" value={qr} onChangeText={setQr}/>
   <Pressable style={s.save} onPress={save}><Text style={s.saveText}>Save Settings</Text></Pressable>
   <View style={s.card}><Text style={s.cardTitle}>Management</Text><Row icon="people-outline" title="Users"/><Row icon="receipt-outline" title="Transaction history"/><Row icon="share-social-outline" title="Referral / team settings"/><Row icon="megaphone-outline" title="Announcements"/></View>
-  <Text style={s.note}>This admin screen is a configuration prototype. Before production use, protect it with Firebase Authentication and Firestore security rules. Do not store private wallet keys in the app.</Text>
+  <Text style={s.note}>This admin screen writes the public configuration to Firestore. Before production use, protect it with Firebase Authentication and Firestore security rules. Do not store private wallet keys in the app.</Text>
  </ScrollView></SafeAreaView>;
 }
 function Field({label,value,onChangeText,keyboard}:{label:string,value:string,onChangeText:(v:string)=>void,keyboard?:any}){return <View style={s.field}><Text style={s.label}>{label}</Text><TextInput value={value} onChangeText={onChangeText} keyboardType={keyboard} style={s.input}/></View>}
