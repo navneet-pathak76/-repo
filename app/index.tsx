@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { collection, doc, onSnapshot, serverTimestamp, setDoc, addDoc } from "firebase/firestore";
 import { auth, db, isFirebaseConfigured } from "../lib/firebase";
+import Login from "./login";
 import { Alert,Pressable,SafeAreaView,ScrollView,StyleSheet,Text,TextInput,View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -20,6 +21,7 @@ export default function Home(){
  const action=(t:string)=>Alert.alert(t,isFirebaseConfigured?"This action is ready for backend wiring.":"Demo interface — configure Firebase before using account data.");
  const request=async(type:"buy"|"sell")=>{if(!user||!db)return action(type==="buy"?"Buy request":"Sell request");const n=Number(amount);if(!n||n<=0)return Alert.alert("Enter an amount","Enter a valid amount first.");try{await addDoc(collection(db,"transactions"),{userId:user.uid,type,amount:n,rate,status:"pending",createdAt:serverTimestamp()});Alert.alert("Request submitted","Your request was recorded with status: pending.");setAmount("")}catch(e){Alert.alert("Could not submit","Check your Firebase configuration and Firestore rules.")}};
  if(loading)return <SafeAreaView style={s.safe}><View style={s.center}><Text>Loading…</Text></View></SafeAreaView>;
+ if(isFirebaseConfigured && !user)return <Login/>;
  return <SafeAreaView style={s.safe}><View style={s.container}>
   <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
    <View style={s.top}><View style={s.avatar}><Text style={s.avatarText}>RP</Text></View><View style={s.invite}><Text style={s.inviteLabel}>Invite Code:</Text><Text style={s.inviteCode}>5z3xIkYy</Text><Pressable onPress={()=>action("Invite code copied")}><Ionicons name="copy-outline" size={18} color={C.muted}/></Pressable></View><Ionicons name="notifications-outline" size={24} color={C.text}/></View>
