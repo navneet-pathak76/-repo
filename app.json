@@ -11,10 +11,6 @@
       "package": "com.example.rpexchange",
       "versionCode": 1,
       "edgeToEdgeEnabled": true,
-      "adaptiveIcon": {
-        "backgroundColor": "#0B5E4A",
-        "foregroundImage": "./assets/adaptive-icon.png"
-      },
       "icon": "./assets/icon.png"
     },
     "plugins": [],
