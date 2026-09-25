@@ -5,9 +5,11 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "newArchEnabled": true,
     "android": {
       "package": "com.example.rpexchange",
-      "versionCode": 1
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true
     },
     "plugins": []
   }
