@@ -6,12 +6,10 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "icon": "./assets/icon.png",
     "android": {
       "package": "com.example.rpexchange",
       "versionCode": 1,
-      "edgeToEdgeEnabled": true,
-      "icon": "./assets/icon.png"
+      "edgeToEdgeEnabled": true
     },
     "plugins": [],
     "extra": {
