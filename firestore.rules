@@ -4,7 +4,6 @@ service cloud.firestore {
     function signedIn() {
       return request.auth != null;
     }
-
     function isAdmin() {
       return signedIn() && request.auth.uid == "AInbtkxwW0UVMWdh12HCWNcDn1l2";
     }
@@ -27,7 +26,6 @@ service cloud.firestore {
     match /transactions/{transactionId} {
       allow read: if signedIn()
         && (isAdmin() || resource.data.userId == request.auth.uid);
-
       allow create: if signedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == "pending"
@@ -36,14 +34,7 @@ service cloud.firestore {
           "userId", "type", "amount", "rate", "usdtAmount", "inrAmount",
           "status", "createdAt"
         ]);
-
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    match /admins/{adminId} {
-      allow read: if isAdmin();
-      allow write: if false;
+      allow update, delete: if isAdmin();
     }
   }
 }
