@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, doc, onSnapshot, serverTimestamp, setDoc, addDoc } from "firebase/firestore";
 import { auth, db, isFirebaseConfigured } from "../lib/firebase";
 import Login from "./login";
@@ -7,7 +7,6 @@ import { Alert,Pressable,SafeAreaView,ScrollView,StyleSheet,Text,TextInput,View 
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
-const RATE=110;
 const C={bg:"#F7F7FA",card:"#FFF",text:"#17191F",muted:"#7B7F89",blue:"#2455D6",green:"#16A66A",border:"#E8E9EE"};
 type Tab="home"|"buy"|"sell"|"mine";
 
