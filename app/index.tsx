@@ -7,6 +7,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { auth, db, isFirebaseConfigured } from "../lib/firebase";
 import Login from "./login";
+import Admin from "./admin";
 
 const C = {
   bg: "#F7F7FA",
@@ -113,6 +114,8 @@ export default function Home() {
         type,
         amount: parsed,
         rate,
+        usdtAmount: type === "buy" ? parsed / rate : parsed,
+        inrAmount: type === "buy" ? parsed : parsed * rate,
         status: "pending",
         createdAt: serverTimestamp(),
       });
@@ -136,6 +139,10 @@ export default function Home() {
 
   if (isFirebaseConfigured && !user) {
     return <Login />;
+  }
+
+  if (user?.uid === "AInbtkxwW0UVMWdh12HCWNcDn1l2") {
+    return <Admin />;
   }
 
   return (
