@@ -12,9 +12,11 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-export const isFirebaseConfigured = Boolean(
-  firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId
+const hasValidFirebaseConfig = Object.values(firebaseConfig).every(
+  (value) => typeof value === "string" && value.trim().length > 0
 );
+
+export const isFirebaseConfigured = hasValidFirebaseConfig;
 
 export const app = isFirebaseConfigured
   ? (getApps()[0] ?? initializeApp(firebaseConfig))

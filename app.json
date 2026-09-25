@@ -6,11 +6,25 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
     "android": {
       "package": "com.example.rpexchange",
       "versionCode": 1,
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "backgroundColor": "#0B5E4A",
+        "foregroundImage": "./assets/adaptive-icon.png"
+      },
+      "icon": "./assets/icon.png"
     },
-    "plugins": []
+    "plugins": [],
+    "extra": {
+      "eas": {
+        "projectId": "d8de4a7d-0576-451f-b2c2-9e555383d7f0"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.example.rpexchange"
+    }
   }
 }

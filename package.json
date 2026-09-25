@@ -5,8 +5,9 @@
   "main": "App.tsx",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "web": "expo start --web"
+    "android": "expo run:android",
+    "web": "expo start --web",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.0",
