@@ -9,6 +9,6 @@
       "package": "com.example.rpexchange",
       "versionCode": 1
     },
-    "plugins": ["expo-router"]
+    "plugins": []
   }
 }
