@@ -9,6 +9,12 @@ import { LinearGradient } from "expo-linear-gradient";
 
 const C={bg:"#F7F7FA",card:"#FFF",text:"#17191F",muted:"#7B7F89",blue:"#2455D6",green:"#16A66A",border:"#E8E9EE"};
 type Tab="home"|"buy"|"sell"|"mine";
+const HOME_MENU:[string,string][]=[
+ ["people-outline","My Team"],
+ ["gift-outline","Rebate Rewards"],
+ ["document-text-outline","Transaction History"],
+ ["headset-outline","Customer Support"],
+];
 
 export default function Home(){
  const [tab,setTab]=useState<Tab>("home"),[amount,setAmount]=useState(""),[user,setUser]=useState<User|null>(null),[settings,setSettings]=useState({rate:110,paymentAddress:"",qrUrl:""}),[loading,setLoading]=useState(true);
@@ -30,7 +36,7 @@ export default function Home(){
     {HOME_MENU.map(([i,t]) => <MenuRow key={t} icon={i} title={t} onPress={()=>action(t)} />)}
    </View>}
    {(tab==="buy"||tab==="sell")&&<View style={s.exchangeCard}><Text style={s.pageTitle}>{tab==="buy"?"Buy RP":"Sell RP"}</Text><Text style={s.rate}>Rate: 1 USDT = ₹{rate}</Text><Text style={s.inputLabel}>{tab==="buy"?"INR Amount":"USDT Quantity"}</Text><TextInput value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder={tab==="buy"?"Enter INR amount":"Enter USDT quantity"} style={s.input}/><View style={s.quote}><Text style={s.quoteLabel}>{tab==="buy"?"USDT Amount":"INR Amount"}</Text><Text style={s.quoteValue}>{tab==="buy"?usdt+" USDT":"₹"+(Number(amount||0)*rate).toFixed(2)}</Text></View><Pressable style={s.primary} onPress={()=>request(tab)}><Text style={s.primaryText}>{tab==="buy"?"Submit Buy Request":"Submit Sell Request"}</Text><Text style={s.helper}>Requests are recorded for review. This app does not transfer or custody crypto assets.</Text></Pressable></View>)}
-   {tab==="mine"&&<View style={s.profileCard}><View style={s.bigAvatar}><Text style={s.bigAvatarText}>RP</Text></View><Text style={s.profileName}>{user?.email||"Demo User"}</Text><Text style={s.profileMuted}>Invite Code: 5z3xIkYy</Text><MenuRow icon="receipt-outline" title="Transaction history" onPress={()=>action("Transaction history")}/><MenuRow icon="wallet-outline" title="Payment methods" onPress={()=>action("Payment methods")}/><MenuRow icon="receipt-outline" title="Transaction history" onPress={()=>action("Transaction history")}/><MenuRow icon="share-social-outline" title="Share invitation" onPress={()=>action("Share invitation")}/></View>)}
+   {tab==="mine"&&<View style={s.profileCard}><View style={s.bigAvatar}><Text style={s.bigAvatarText}>RP</Text></View><Text style={s.profileName}>{user?.email||"Demo User"}</Text><Text style={s.profileMuted}>Invite Code: 5z3xIkYy</Text><MenuRow icon="receipt-outline" title="Transaction history" onPress={()=>action("Transaction history")}/><MenuRow icon="wallet-outline" title="Payment methods" onPress={()=>action("Payment methods")}/><MenuRow icon="share-social-outline" title="Share invitation" onPress={()=>action("Share invitation")}/></View>}
   </ScrollView>
   <View style={s.nav}><TabButton icon="home-outline" label="Home" active={tab==="home"} onPress={()=>setTab("home")}/><TabButton icon="swap-horizontal-outline" label="Buy RP" active={tab==="buy"} onPress={()=>setTab("buy")}/><TabButton icon="cash-outline" label="Sell RP" active={tab==="sell"} onPress={()=>setTab("sell")}/><TabButton icon="person-outline" label="Mine" active={tab==="mine"} onPress={()=>setTab("mine")}/></View>
  </View></SafeAreaView>;
