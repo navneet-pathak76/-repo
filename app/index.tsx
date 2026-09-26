@@ -71,7 +71,7 @@ export default function Home() {
   const [tab, setTab] = useState<Tab>("home");
   const [amount, setAmount] = useState("");
   const [user, setUser] = useState<User | null>(null);
-  const [settings, setSettings] = useState({ rate: 110, paymentAddress: "", qrUrl: "" });
+  const [settings, setSettings] = useState({ rate: 115, paymentAddress: "", qrUrl: "" });
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [dataZeroed, setDataZeroed] = useState(false);
   const [transactions, setTransactions] = useState<Tx[]>([]);
@@ -105,7 +105,7 @@ export default function Home() {
       if (!snapshot.exists()) return;
       const data = snapshot.data();
       setSettings({
-        rate: Number(data.rate) || 110,
+        rate: Number(data.rate) || 115,
         paymentAddress: String(data.paymentAddress || ""),
         qrUrl: String(data.qrUrl || ""),
       });
