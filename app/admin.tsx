@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { collection, doc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { db } from "../lib/firebase";
+import { db, functions } from "../lib/firebase";
+import { httpsCallable } from "firebase/functions";
 
 const C={bg:"#F7F7FA",card:"#fff",text:"#17191F",muted:"#7B7F89",blue:"#2455D6",green:"#16A66A",red:"#C93A3A",border:"#E8E9EE"};
 
@@ -46,6 +47,29 @@ export default function Admin(){
   }catch{Alert.alert("Update failed","Firebase rejected the emergency mode change.");}
  };
 
+ const wipeEverything=async()=>{
+  if(!functions)return;
+  Alert.alert(
+   "WIPE EVERYTHING",
+   "This permanently deletes all Firestore application data and all Firebase Authentication test users in this test environment. This cannot be undone.",
+   [
+    {text:"Cancel",style:"cancel"},
+    {text:"WIPE EVERYTHING",style:"destructive",onPress:async()=>{
+     try{
+      setBusy("wipe");
+      const wipe=httpsCallable(functions,"wipeTestEnvironment");
+      await wipe({confirmation:"WIPE EVERYTHING"});
+      Alert.alert("Wipe complete","The test environment has been cleared. The current admin account was deleted as part of the reset.");
+     }catch(error:any){
+      Alert.alert("Wipe failed",String(error?.message||"The server rejected the wipe request."));
+     }finally{
+      setBusy("");
+     }
+    }}
+   ]
+  );
+ };
+
  const updateTx=async(id:string,status:"approved"|"rejected"|"completed",data:any)=>{
   if(!db)return;
   if(status==="approved" && !data.transactionId && !data.transactionLink && !data.paymentReference){
@@ -71,6 +95,14 @@ export default function Admin(){
    <Text style={s.muted}>Locks the user app and blocks new transaction requests at the database level.</Text>
    <Pressable style={[s.primary,{backgroundColor:maintenanceMode?C.green:C.red,marginTop:12}]} onPress={()=>setMaintenance(!maintenanceMode)}>
     <Text style={s.primaryText}>{maintenanceMode?"Disable Emergency Lockdown":"ENABLE EMERGENCY LOCKDOWN"}</Text>
+   </Pressable>
+  </View>
+
+  <View style={s.card}>
+   <Text style={s.cardTitle}>Test environment reset</Text>
+   <Text style={s.muted}>Permanently deletes all Firestore application data and Firebase Authentication test users.</Text>
+   <Pressable disabled={busy==="wipe"} style={[s.primary,{backgroundColor:C.red,marginTop:12,opacity:busy==="wipe"?.55:1}]} onPress={wipeEverything}>
+    <Text style={s.primaryText}>{busy==="wipe"?"WIPING…":"WIPE EVERYTHING"}</Text>
    </Pressable>
   </View>
 
