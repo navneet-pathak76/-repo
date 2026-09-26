@@ -196,6 +196,8 @@ export default function Home() {
     }
   };
 
+  const latestRequest = transactions[0];
+
   const shareInvite = async () => {
     try {
       await Share.share({
@@ -348,6 +350,43 @@ export default function Home() {
               <Text style={styles.helper}>
                 Requests are reviewed by admin. No crypto is transferred or held by this app.
               </Text>
+
+              {latestRequest && latestRequest.type === tab ? (
+                <View style={styles.requestStatusCard}>
+                  <View style={styles.requestStatusTop}>
+                    <View>
+                      <Text style={styles.requestStatusLabel}>LATEST REQUEST</Text>
+                      <Text style={styles.requestStatusTitle}>
+                        {latestRequest.status === "pending"
+                          ? "Request submitted"
+                          : latestRequest.status === "approved"
+                            ? "Approved — details added"
+                            : latestRequest.status === "completed"
+                              ? "Completed"
+                              : "Request rejected"}
+                      </Text>
+                    </View>
+                    <View style={styles.statusPillLarge}>
+                      <Text style={styles.statusTextLarge}>{latestRequest.status || "pending"}</Text>
+                    </View>
+                  </View>
+                  {latestRequest.status === "pending" ? (
+                    <Text style={styles.requestStatusHint}>Waiting for admin approval. Your request will update automatically when the admin adds the transaction details.</Text>
+                  ) : (
+                    <View>
+                      {latestRequest.transactionId ? <Text style={styles.detailText}>Transaction ID: {latestRequest.transactionId}</Text> : null}
+                      {latestRequest.paymentReference ? <Text style={styles.detailText}>Payment reference: {latestRequest.paymentReference}</Text> : null}
+                      {latestRequest.adminNote ? <Text style={styles.detailText}>Admin note: {latestRequest.adminNote}</Text> : null}
+                      {latestRequest.transactionLink ? (
+                        <Pressable style={styles.detailButton} onPress={() => Alert.alert("Transaction link", latestRequest.transactionLink || "")}>
+                          <Text style={styles.detailButtonText}>View transaction details</Text>
+                          <Ionicons name="open-outline" size={15} color="#fff" />
+                        </Pressable>
+                      ) : null}
+                    </View>
+                  )}
+                </View>
+              ) : null}
             </View>
           )}
 
@@ -440,6 +479,11 @@ export default function Home() {
                         </Text>
                         {tx.transactionId ? (
                           <Text style={styles.txMeta}>TX: {tx.transactionId}</Text>
+                        ) : null}
+                        {tx.status !== "pending" && tx.transactionLink ? (
+                          <Pressable onPress={() => Alert.alert("Transaction link", tx.transactionLink || "")}>
+                            <Text style={styles.txLink}>View transaction details</Text>
+                          </Pressable>
                         ) : null}
                         {tx.adminNote ? <Text style={styles.txNote}>{tx.adminNote}</Text> : null}
                       </View>
@@ -619,6 +663,19 @@ const styles = StyleSheet.create({
     fontSize: 11, color: C.muted, lineHeight: 16,
     textAlign: "center", marginTop: 10, paddingHorizontal: 8,
   },
+  requestStatusCard: {
+    marginTop: 16, borderRadius: 16, padding: 15, backgroundColor: "#F7F8FB",
+    borderWidth: 1, borderColor: C.border,
+  },
+  requestStatusTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  requestStatusLabel: { fontSize: 10, color: C.muted, fontWeight: "800", letterSpacing: 0.7 },
+  requestStatusTitle: { fontSize: 15, color: C.text, fontWeight: "800", marginTop: 4 },
+  statusPillLarge: { backgroundColor: "#E9ECF2", borderRadius: 12, paddingHorizontal: 9, paddingVertical: 6 },
+  statusTextLarge: { fontSize: 10, color: C.text, fontWeight: "800", textTransform: "capitalize" },
+  requestStatusHint: { fontSize: 11, lineHeight: 16, color: C.muted, marginTop: 10 },
+  detailText: { fontSize: 11.5, lineHeight: 17, color: C.text, marginTop: 7 },
+  detailButton: { marginTop: 11, alignSelf: "flex-start", backgroundColor: C.blue, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 5 },
+  detailButtonText: { color: "#fff", fontSize: 11.5, fontWeight: "800" },
   profileCard: {
     backgroundColor: "#fff", borderRadius: 22, padding: 20,
     alignItems: "center", borderWidth: 1, borderColor: C.border,
@@ -675,6 +732,7 @@ const styles = StyleSheet.create({
   txAmount: { fontSize: 15, fontWeight: "800", color: C.blue, marginTop: 2 },
   txMeta: { fontSize: 10.5, color: C.muted, marginTop: 3 },
   txNote: { fontSize: 11, color: C.text, marginTop: 5 },
+  txLink: { fontSize: 11, color: C.blue, fontWeight: "800", marginTop: 5 },
   statusPill: {
     backgroundColor: "#F2F3F6", borderRadius: 10,
     paddingHorizontal: 8, paddingVertical: 5, marginLeft: 6,
