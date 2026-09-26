@@ -37,6 +37,14 @@ jobs:
           java-version: 17
           cache: gradle
 
+      - name: Generate app icon
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y librsvg2-bin
+          mkdir -p assets
+          rsvg-convert -w 1024 -h 1024 assets/icon.svg -o assets/icon.png
+          file assets/icon.png
+
       - name: Generate Android project
         run: npx expo prebuild --clean
 
