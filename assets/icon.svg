@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#123A72"/>
+      <stop offset="0.5" stop-color="#081B39"/>
+      <stop offset="1" stop-color="#030A18"/>
+    </linearGradient>
+    <linearGradient id="silver" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.45" stop-color="#D9E0EA"/>
+      <stop offset="1" stop-color="#8C99AA"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#0057E7"/>
+      <stop offset="0.55" stop-color="#00BFFF"/>
+      <stop offset="1" stop-color="#4CE3FF"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="210" fill="url(#bg)"/>
+  <circle cx="150" cy="120" r="240" fill="#1D75FF" opacity="0.10"/>
+  <g filter="url(#shadow)">
+    <path d="M205 270H535C635 270 700 325 700 410C700 470 666 516 610 540L790 720H620L455 555H355V720H205V270ZM355 390V445H515C548 445 570 430 570 417C570 401 548 390 515 390H355Z" fill="url(#silver)"/>
+    <path d="M535 270H710C790 270 850 320 850 400C850 468 808 518 745 535L745 650L635 540L700 475C728 465 748 442 748 415C748 390 725 375 695 375H535V270Z" fill="url(#blue)"/>
+    <path d="M470 700L690 475L770 555L550 780Z" fill="url(#blue)" opacity="0.95"/>
+    <path d="M650 470H775V345L845 415L775 485V540Z" fill="#12C8FF"/>
+  </g>
+  <text x="512" y="875" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700" letter-spacing="20" fill="#F7FAFF">EXCHANGE</text>
+</svg>
