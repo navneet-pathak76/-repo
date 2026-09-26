@@ -73,6 +73,7 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [settings, setSettings] = useState({ rate: 110, paymentAddress: "", qrUrl: "" });
   const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [dataZeroed, setDataZeroed] = useState(false);
   const [transactions, setTransactions] = useState<Tx[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -94,6 +95,7 @@ export default function Home() {
     if (!db) return;
     return onSnapshot(doc(db, "appSettings", "runtime"), (snapshot) => {
       setMaintenanceMode(snapshot.exists() && snapshot.data().maintenanceMode === true);
+      setDataZeroed(snapshot.exists() && snapshot.data().dataZeroed === true);
     });
   }, []);
 
@@ -263,7 +265,7 @@ export default function Home() {
               <View style={styles.balanceCard}>
                 <Text style={styles.label}>Current Balance</Text>
                 <View style={styles.balanceRow}>
-                  <Text style={styles.balance}>89.1</Text>
+                  <Text style={styles.balance}>{dataZeroed ? "0.00" : "89.1"}</Text>
                   <Ionicons name="chevron-forward" size={22} color={C.muted} />
                 </View>
                 <Text style={styles.balanceUnit}>USDT</Text>
