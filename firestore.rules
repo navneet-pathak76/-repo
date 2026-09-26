@@ -45,6 +45,7 @@ service cloud.firestore {
         && request.resource.data.amount is number
         && request.resource.data.rate is number
         && request.resource.data.usdtAmount is number
+        && request.resource.data.usdtAmount >= 50
         && request.resource.data.inrAmount is number
         && request.resource.data.keys().hasOnly([
           "userId", "type", "amount", "rate", "usdtAmount", "inrAmount",
