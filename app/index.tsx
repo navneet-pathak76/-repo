@@ -29,6 +29,8 @@ import { auth, db, isFirebaseConfigured } from "../lib/firebase";
 import Login from "./login";
 import Admin from "./admin";
 
+const ADMIN_UID = process.env.EXPO_PUBLIC_FIREBASE_ADMIN_UID ?? "";
+
 const C = {
   bg: "#F7F8FB",
   card: "#FFFFFF",
@@ -70,6 +72,7 @@ export default function Home() {
   const [amount, setAmount] = useState("");
   const [user, setUser] = useState<User | null>(null);
   const [settings, setSettings] = useState({ rate: 110, paymentAddress: "", qrUrl: "" });
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [transactions, setTransactions] = useState<Tx[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -84,6 +87,13 @@ export default function Home() {
     return onAuthStateChanged(auth, (nextUser) => {
       setUser(nextUser);
       setLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!db) return;
+    return onSnapshot(doc(db, "appSettings", "runtime"), (snapshot) => {
+      setMaintenanceMode(snapshot.exists() && snapshot.data().maintenanceMode === true);
     });
   }, []);
 
@@ -216,8 +226,9 @@ export default function Home() {
     );
   }
 
+  if (maintenanceMode) return <MaintenanceScreen />;
   if (isFirebaseConfigured && !user) return <Login />;
-  if (user?.uid === "AInbtkxwW0UVMWdh12HCWNcDn1l2") return <Admin />;
+  if (user?.uid === ADMIN_UID && ADMIN_UID) return <Admin />;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -531,6 +542,20 @@ export default function Home() {
   );
 }
 
+function MaintenanceScreen() {
+  return (
+    <SafeAreaView style={styles.maintenanceSafe}>
+      <View style={styles.maintenanceCard}>
+        <View style={styles.maintenanceIcon}>
+          <Ionicons name="lock-closed-outline" size={30} color={C.blue} />
+        </View>
+        <Text style={styles.maintenanceTitle}>COMING SOON</Text>
+        <Text style={styles.maintenanceText}>Platform permanently unavailable.</Text>
+      </View>
+    </SafeAreaView>
+  );
+}
+
 function MenuRow({
   icon,
   title,
@@ -572,6 +597,11 @@ function TabButton({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
+  maintenanceSafe: { flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center", padding: 24 },
+  maintenanceCard: { width: "100%", maxWidth: 420, backgroundColor: C.card, borderRadius: 24, padding: 28, alignItems: "center", borderWidth: 1, borderColor: C.border },
+  maintenanceIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: C.softBlue, alignItems: "center", justifyContent: "center", marginBottom: 18 },
+  maintenanceTitle: { fontSize: 28, fontWeight: "900", color: C.text, letterSpacing: 1 },
+  maintenanceText: { fontSize: 14, color: C.muted, textAlign: "center", marginTop: 8 },
   container: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   loading: { color: C.muted, fontSize: 14 },
