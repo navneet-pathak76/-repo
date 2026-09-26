@@ -4,8 +4,18 @@ service cloud.firestore {
     function signedIn() {
       return request.auth != null;
     }
+
     function isAdmin() {
       return signedIn() && request.auth.uid == "AInbtkxwW0UVMWdh12HCWNcDn1l2";
+    }
+
+    function maintenanceMode() {
+      return get(/databases/$(database)/documents/appSettings/runtime).data.maintenanceMode == true;
+    }
+
+    match /appSettings/runtime {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     match /appSettings/{document} {
@@ -26,14 +36,21 @@ service cloud.firestore {
     match /transactions/{transactionId} {
       allow read: if signedIn()
         && (isAdmin() || resource.data.userId == request.auth.uid);
+
       allow create: if signedIn()
+        && !maintenanceMode()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == "pending"
         && request.resource.data.type in ["buy", "sell"]
+        && request.resource.data.amount is number
+        && request.resource.data.rate is number
+        && request.resource.data.usdtAmount is number
+        && request.resource.data.inrAmount is number
         && request.resource.data.keys().hasOnly([
           "userId", "type", "amount", "rate", "usdtAmount", "inrAmount",
           "status", "createdAt"
         ]);
+
       allow update, delete: if isAdmin();
     }
   }
