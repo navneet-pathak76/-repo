@@ -146,7 +146,9 @@ export default function Home() {
     ).catch(() => undefined);
   }, [user]);
 
-  const rate = settings.rate || 110;
+  const rate = settings.rate || 115;
+  const MIN_USDT = 50;
+  const MIN_INR = MIN_USDT * rate;
 
   const usdtAmount = useMemo(() => {
     const parsed = Number(amount);
@@ -173,6 +175,16 @@ export default function Home() {
     const parsed = Number(amount);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       Alert.alert("Enter an amount", "Enter a valid amount first.");
+      return;
+    }
+
+    if (type === "buy" && parsed < MIN_INR) {
+      Alert.alert("Minimum buy amount", "Minimum buy amount is ₹" + MIN_INR.toFixed(0) + " (50 USDT).");
+      return;
+    }
+
+    if (type === "sell" && parsed < MIN_USDT) {
+      Alert.alert("Minimum withdrawal", "Minimum withdrawal is 50 USDT.");
       return;
     }
 
@@ -323,28 +335,31 @@ export default function Home() {
               </View>
 
               <Text style={styles.inputLabel}>
-                {tab === "buy" ? "INR Amount" : "USDT Quantity"}
+                {tab === "buy" ? "INR Amount" : "USDT Withdrawal Amount"}
               </Text>
 
               <TextInput
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="decimal-pad"
-                placeholder={tab === "buy" ? "Enter INR amount" : "Enter USDT quantity"}
+                placeholder={tab === "buy" ? "Minimum ₹" + MIN_INR.toFixed(0) : "Minimum 50 USDT"}
                 placeholderTextColor="#A5A8B0"
                 style={styles.input}
               />
 
-              <View style={styles.quote}>
-                <Text style={styles.quoteLabel}>
-                  {tab === "buy" ? "YOU RECEIVE" : "YOU RECEIVE"}
-                </Text>
-                <Text style={styles.quoteValue}>
-                  {tab === "buy"
-                    ? `${usdtAmount} USDT`
-                    : `₹${(Number(amount || 0) * rate).toFixed(2)}`}
-                </Text>
-              </View>
+              {tab === "buy" ? (
+                <View style={styles.quote}>
+                  <Text style={styles.quoteLabel}>YOU RECEIVE</Text>
+                  <Text style={styles.quoteValue}>{usdtAmount} USDT</Text>
+                  <Text style={styles.minimumHint}>Minimum: 50 USDT (₹{MIN_INR.toFixed(0)})</Text>
+                </View>
+              ) : (
+                <View style={styles.quote}>
+                  <Text style={styles.quoteLabel}>WITHDRAWAL</Text>
+                  <Text style={styles.quoteValue}>Request INR withdrawal</Text>
+                  <Text style={styles.minimumHint}>Minimum withdrawal: 50 USDT</Text>
+                </View>
+              )}
 
               <Pressable
                 disabled={submitting}
@@ -356,7 +371,7 @@ export default function Home() {
                     ? "Submitting…"
                     : tab === "buy"
                       ? "Submit Buy Request"
-                      : "Submit Sell Request"}
+                      : "Request INR Withdrawal"}
                 </Text>
               </Pressable>
 
@@ -685,6 +700,7 @@ const styles = StyleSheet.create({
   },
   quoteLabel: { fontSize: 11, color: C.muted, marginBottom: 5, fontWeight: "800", letterSpacing: 0.5 },
   quoteValue: { fontSize: 26, fontWeight: "800", color: C.blue },
+  minimumHint: { fontSize: 11, color: C.muted, marginTop: 6, fontWeight: "600" },
   primary: {
     backgroundColor: C.blue, borderRadius: 15, height: 54,
     alignItems: "center", justifyContent: "center",
