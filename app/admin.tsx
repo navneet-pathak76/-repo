@@ -36,6 +36,10 @@ export default function Admin(){
 
  const updateTx=async(id:string,status:"approved"|"rejected"|"completed",data:any)=>{
   if(!db)return;
+  if(status==="approved" && !data.transactionId && !data.transactionLink && !data.paymentReference){
+    Alert.alert("Add transaction details","Enter at least a Transaction ID, Payment Link, or Payment Reference before approving.");
+    return;
+  }
   try{setBusy(id);await updateDoc(doc(db,"transactions",id),{...data,status,updatedAt:new Date().toISOString(),processedAt:status==="rejected"?null:new Date().toISOString()});}
   catch{Alert.alert("Update failed","Firebase rejected the transaction update.");}
   finally{setBusy("");}
@@ -71,6 +75,8 @@ function TxCard({tx,busy,onSave}:{tx:any;busy:boolean;onSave:(id:string,status:a
  const [link,setLink]=useState(tx.transactionLink||"");
  const [ref,setRef]=useState(tx.paymentReference||"");
  const [note,setNote]=useState(tx.adminNote||"");
+ const detailsSaved=Boolean(tid.trim()||link.trim()||ref.trim());
+
  return <View style={s.card}>
   <View style={s.top}><Text style={s.type}>{String(tx.type||"").toUpperCase()} RP</Text><Text style={s.status}>{tx.status}</Text></View>
   <Text style={s.amount}>{tx.type==="sell"?String(tx.usdtAmount||tx.amount)+" USDT → ₹"+Number(tx.inrAmount||((tx.amount||0)*(tx.rate||110))).toFixed(2):"₹"+Number(tx.inrAmount||tx.amount||0).toFixed(2)+" → "+Number(tx.usdtAmount||0).toFixed(2)+" USDT"}</Text>
@@ -80,9 +86,12 @@ function TxCard({tx,busy,onSave}:{tx:any;busy:boolean;onSave:(id:string,status:a
   <Field label="Transaction / Payment Link" value={link} onChangeText={setLink}/>
   <Field label="Payment Reference" value={ref} onChangeText={setRef}/>
   <Field label="Admin Note" value={note} onChangeText={setNote}/>
-  {tx.status==="pending"&&<View style={s.actions}>
-   <Pressable disabled={busy} style={s.approve} onPress={()=>onSave(tx.id,"approved",{transactionId:tid.trim(),transactionLink:link.trim(),paymentReference:ref.trim(),adminNote:note.trim()})}><Text style={s.actionText}>{busy?"Saving…":"Approve"}</Text></Pressable>
-   <Pressable disabled={busy} style={s.reject} onPress={()=>onSave(tx.id,"rejected",{transactionId:tid.trim(),transactionLink:link.trim(),paymentReference:ref.trim(),adminNote:note.trim()})}><Text style={s.actionText}>Reject</Text></Pressable>
+  {tx.status==="pending"&&<View>
+    <Text style={s.hint}>Add at least one transaction detail, then approve. The user remains Pending until approval.</Text>
+    <View style={s.actions}>
+      <Pressable disabled={busy} style={[s.approve,!detailsSaved&&s.disabled]} onPress={()=>onSave(tx.id,"approved",{transactionId:tid.trim(),transactionLink:link.trim(),paymentReference:ref.trim(),adminNote:note.trim()})}><Text style={s.actionText}>{busy?"Saving…":"Approve & Send Details"}</Text></Pressable>
+      <Pressable disabled={busy} style={s.reject} onPress={()=>onSave(tx.id,"rejected",{transactionId:tid.trim(),transactionLink:link.trim(),paymentReference:ref.trim(),adminNote:note.trim()})}><Text style={s.actionText}>Reject</Text></Pressable>
+    </View>
   </View>}
   {tx.status==="approved"&&<Pressable disabled={busy} style={s.complete} onPress={()=>onSave(tx.id,"completed",{transactionId:tid.trim(),transactionLink:link.trim(),paymentReference:ref.trim(),adminNote:note.trim()})}><Text style={s.actionText}>{busy?"Saving…":"Mark Completed"}</Text></Pressable>}
  </View>;
@@ -98,7 +107,8 @@ const s=StyleSheet.create({
  card:{backgroundColor:C.card,borderRadius:16,padding:15,borderWidth:1,borderColor:C.border,marginBottom:12},cardTitle:{fontSize:17,fontWeight:"800",color:C.text,marginBottom:14},
  field:{marginBottom:10},label:{fontSize:12,color:C.muted,marginBottom:6},input:{height:46,borderWidth:1,borderColor:C.border,borderRadius:11,paddingHorizontal:12,fontSize:14,color:C.text},
  primary:{height:48,borderRadius:12,backgroundColor:C.blue,alignItems:"center",justifyContent:"center"},primaryText:{color:"#fff",fontWeight:"800"},
- section:{fontSize:19,fontWeight:"800",color:C.text,marginTop:8,marginBottom:10},muted:{fontSize:13,color:C.muted},top:{flexDirection:"row",justifyContent:"space-between"},type:{fontSize:13,fontWeight:"800",color:C.text},status:{fontSize:11,fontWeight:"800",color:C.blue,textTransform:"uppercase"},amount:{fontSize:18,fontWeight:"800",color:C.blue,marginTop:10},meta:{fontSize:11.5,color:C.muted,marginTop:5},
- actions:{flexDirection:"row",gap:8},approve:{flex:1,backgroundColor:C.green,borderRadius:10,paddingVertical:11,alignItems:"center"},reject:{flex:1,backgroundColor:C.red,borderRadius:10,paddingVertical:11,alignItems:"center"},complete:{backgroundColor:C.blue,borderRadius:10,paddingVertical:11,alignItems:"center"},actionText:{color:"#fff",fontWeight:"800",fontSize:12},
+ section:{fontSize:19,fontWeight:"800",color:C.text,marginTop:8,marginBottom:10},muted:{fontSize:13,color:C.muted},top:{flexDirection:"row",justifyContent:"space-between"},type:{fontSize:13,fontWeight:"800",color:C.text},status:{fontSize:11,fontWeight:"800",color:C.blue,textTransform:"uppercase"},
+ amount:{fontSize:18,fontWeight:"800",color:C.blue,marginTop:10},meta:{fontSize:11.5,color:C.muted,marginTop:5},hint:{fontSize:11,color:C.muted,lineHeight:16,marginBottom:9},
+ actions:{flexDirection:"row",gap:8},approve:{flex:1,backgroundColor:C.green,borderRadius:10,paddingVertical:11,alignItems:"center"},disabled:{opacity:.45},reject:{flex:1,backgroundColor:C.red,borderRadius:10,paddingVertical:11,alignItems:"center"},complete:{backgroundColor:C.blue,borderRadius:10,paddingVertical:11,alignItems:"center"},actionText:{color:"#fff",fontWeight:"800",fontSize:12},
  user:{paddingVertical:10,borderBottomWidth:1,borderBottomColor:C.border},userEmail:{fontSize:14,fontWeight:"700",color:C.text},userUid:{fontSize:10,color:C.muted,marginTop:3}
 });
