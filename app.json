@@ -11,7 +11,9 @@
       "versionCode": 1,
       "edgeToEdgeEnabled": true
     },
-    "plugins": [],
+    "plugins": [
+      "./plugins/withReleaseSigning"
+    ],
     "extra": {
       "eas": {
         "projectId": "d8de4a7d-0576-451f-b2c2-9e555383d7f0"
