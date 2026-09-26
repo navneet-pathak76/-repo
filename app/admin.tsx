@@ -9,7 +9,7 @@ const C={bg:"#F7F7FA",card:"#fff",text:"#17191F",muted:"#7B7F89",blue:"#2455D6",
 export default function Admin(){
  const [transactions,setTransactions]=useState<any[]>([]);
  const [users,setUsers]=useState<any[]>([]);
- const [rate,setRate]=useState("110");
+ const [rate,setRate]=useState("115");
  const [address,setAddress]=useState("");
  const [qr,setQr]=useState("");
  const [maintenanceMode,setMaintenanceMode]=useState(false);
@@ -25,7 +25,7 @@ export default function Admin(){
   const b=onSnapshot(collection(db,"users"),snap=>setUsers(snap.docs.map(d=>({id:d.id,...d.data()}))));
   const c=onSnapshot(doc(db,"appSettings","public"),snap=>{
    if(!snap.exists())return;
-   const d=snap.data();setRate(String(d.rate??110));setAddress(String(d.paymentAddress??""));setQr(String(d.qrUrl??""));
+   const d=snap.data();setRate(String(d.rate??115));setAddress(String(d.paymentAddress??""));setQr(String(d.qrUrl??""));
   });
   const d=onSnapshot(doc(db,"appSettings","runtime"),snap=>{
    setMaintenanceMode(snap.exists() && snap.data().maintenanceMode === true);
@@ -35,7 +35,7 @@ export default function Admin(){
 
  const saveSettings=async()=>{
   if(!db)return;
-  try{await setDoc(doc(db,"appSettings","public"),{rate:Number(rate)||110,paymentAddress:address.trim(),qrUrl:qr.trim(),updatedAt:new Date().toISOString()},{merge:true});Alert.alert("Saved","Public settings updated.");}
+  try{await setDoc(doc(db,"appSettings","public"),{rate:Number(rate)||115,paymentAddress:address.trim(),qrUrl:qr.trim(),updatedAt:new Date().toISOString()},{merge:true});Alert.alert("Saved","Public settings updated.");}
   catch{Alert.alert("Save failed","Firebase rejected the update.");}
  };
 
