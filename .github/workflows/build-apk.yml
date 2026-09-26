@@ -89,7 +89,9 @@ jobs:
           EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
         run: |
           set -e
+          set -a
           source signing.env
+          set +a
           ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Verify APK signature
