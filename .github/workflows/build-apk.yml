@@ -51,10 +51,32 @@ jobs:
       - name: Prepare release keystore
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          test -n "$ANDROID_KEYSTORE_BASE64"
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/release.keystore
+          set -e
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/release.keystore
+            cat > android/signing.env <<EOF
+          ANDROID_KEYSTORE_PASSWORD='$ANDROID_KEYSTORE_PASSWORD'
+          ANDROID_KEY_ALIAS='$ANDROID_KEY_ALIAS'
+          ANDROID_KEY_PASSWORD='$ANDROID_KEY_PASSWORD'
+          EOF
+            echo "Using the configured persistent release keystore."
+          else
+            echo "Release signing secrets are not configured; generating a CI-only release keystore."
+            CI_KEYSTORE_PASSWORD="CI-RPExchange-2026"
+            CI_KEY_ALIAS="rp-exchange-ci"
+            keytool -genkeypair -v               -keystore android/release.keystore               -storetype PKCS12               -storepass "$CI_KEYSTORE_PASSWORD"               -keypass "$CI_KEYSTORE_PASSWORD"               -alias "$CI_KEY_ALIAS"               -keyalg RSA               -keysize 2048               -validity 10000               -dname "CN=RP Exchange, OU=CI, O=RP Exchange, L=Kolkata, ST=West Bengal, C=IN"
+            cat > android/signing.env <<EOF
+          ANDROID_KEYSTORE_PASSWORD='$CI_KEYSTORE_PASSWORD'
+          ANDROID_KEY_ALIAS='$CI_KEY_ALIAS'
+          ANDROID_KEY_PASSWORD='$CI_KEYSTORE_PASSWORD'
+          EOF
+          fi
           test -s android/release.keystore
+          test -s android/signing.env
 
       - name: Build signed release APK
         working-directory: android
@@ -65,10 +87,10 @@ jobs:
           EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET }}
           EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
           EXPO_PUBLIC_FIREBASE_APP_ID: ${{ secrets.EXPO_PUBLIC_FIREBASE_APP_ID }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        run: |
+          set -e
+          source signing.env
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Verify APK signature
         run: |
