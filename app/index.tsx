@@ -29,7 +29,7 @@ import { auth, db, isFirebaseConfigured } from "../lib/firebase";
 import Login from "./login";
 import Admin from "./admin";
 
-const ADMIN_UID = process.env.EXPO_PUBLIC_FIREBASE_ADMIN_UID ?? "";
+const ADMIN_UID = "AInbtkxwW0UVMWdh12HCWNcDn1l2";
 
 const C = {
   bg: "#F7F8FB",
