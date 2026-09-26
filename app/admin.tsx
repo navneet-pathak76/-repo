@@ -11,6 +11,7 @@ export default function Admin(){
  const [rate,setRate]=useState("110");
  const [address,setAddress]=useState("");
  const [qr,setQr]=useState("");
+ const [maintenanceMode,setMaintenanceMode]=useState(false);
  const [busy,setBusy]=useState("");
 
  useEffect(()=>{
@@ -25,13 +26,24 @@ export default function Admin(){
    if(!snap.exists())return;
    const d=snap.data();setRate(String(d.rate??110));setAddress(String(d.paymentAddress??""));setQr(String(d.qrUrl??""));
   });
-  return()=>{a();b();c();};
+  const d=onSnapshot(doc(db,"appSettings","runtime"),snap=>{
+   setMaintenanceMode(snap.exists() && snap.data().maintenanceMode === true);
+  });
+  return()=>{a();b();c();d();};
  },[]);
 
  const saveSettings=async()=>{
   if(!db)return;
   try{await setDoc(doc(db,"appSettings","public"),{rate:Number(rate)||110,paymentAddress:address.trim(),qrUrl:qr.trim(),updatedAt:new Date().toISOString()},{merge:true});Alert.alert("Saved","Public settings updated.");}
   catch{Alert.alert("Save failed","Firebase rejected the update.");}
+ };
+
+ const setMaintenance=async(enabled:boolean)=>{
+  if(!db)return;
+  try{
+   await setDoc(doc(db,"appSettings","runtime"),{maintenanceMode:enabled,updatedAt:new Date().toISOString()},{merge:true});
+   Alert.alert("Emergency mode",enabled?"App locked for all users.":"App is live again.");
+  }catch{Alert.alert("Update failed","Firebase rejected the emergency mode change.");}
  };
 
  const updateTx=async(id:string,status:"approved"|"rejected"|"completed",data:any)=>{
@@ -52,6 +64,14 @@ export default function Admin(){
    <View style={s.stat}><Text style={s.statNum}>{users.length}</Text><Text style={s.statLabel}>Users</Text></View>
    <View style={s.stat}><Text style={s.statNum}>{transactions.filter(x=>x.status==="pending").length}</Text><Text style={s.statLabel}>Pending</Text></View>
    <View style={s.stat}><Text style={s.statNum}>{transactions.length}</Text><Text style={s.statLabel}>Transactions</Text></View>
+  </View>
+
+  <View style={s.card}>
+   <Text style={s.cardTitle}>Emergency control</Text>
+   <Text style={s.muted}>Locks the user app and blocks new transaction requests at the database level.</Text>
+   <Pressable style={[s.primary,{backgroundColor:maintenanceMode?C.green:C.red,marginTop:12}]} onPress={()=>setMaintenance(!maintenanceMode)}>
+    <Text style={s.primaryText}>{maintenanceMode?"Disable Emergency Lockdown":"ENABLE EMERGENCY LOCKDOWN"}</Text>
+   </Pressable>
   </View>
 
   <View style={s.card}>
