@@ -2,10 +2,17 @@ const { withAppBuildGradle } = require("@expo/config-plugins");
 
 module.exports = function withReleaseSigning(config) {
   return withAppBuildGradle(config, (config) => {
-    const contents = config.modResults.contents;
+    let contents = config.modResults.contents;
 
     if (contents.includes("signingConfigs.release")) {
       return config;
+    }
+
+    const signingStart = contents.indexOf("    signingConfigs {");
+    const buildTypesStart = contents.indexOf("    buildTypes {", signingStart);
+
+    if (signingStart === -1 || buildTypesStart === -1) {
+      throw new Error("Unable to locate Android signing/buildTypes blocks.");
     }
 
     const signingBlock = `
@@ -25,17 +32,28 @@ module.exports = function withReleaseSigning(config) {
     }
 `;
 
-    config.modResults.contents = contents.replace(
-      /    signingConfigs \{[\\s\\S]*?    \}\n    buildTypes \{/,
-      signingBlock + "    buildTypes {"
+    contents =
+      contents.slice(0, signingStart) +
+      signingBlock +
+      contents.slice(buildTypesStart);
+
+    const releaseSigningMarker = "            signingConfig signingConfigs.debug";
+    const releaseBlockStart = contents.lastIndexOf("        release {");
+    const releaseSigningIndex = contents.indexOf(
+      releaseSigningMarker,
+      releaseBlockStart
     );
 
-    config.modResults.contents = config.modResults.contents.replace(
-      /release \{\n            \/\/ Caution![\\s\\S]*?signingConfig signingConfigs\.debug/,
-      `release {
-            signingConfig signingConfigs.release`
-    );
+    if (releaseBlockStart === -1 || releaseSigningIndex === -1) {
+      throw new Error("Unable to locate Android release signing configuration.");
+    }
 
+    contents =
+      contents.slice(0, releaseSigningIndex) +
+      "            signingConfig signingConfigs.release" +
+      contents.slice(releaseSigningIndex + releaseSigningMarker.length);
+
+    config.modResults.contents = contents;
     return config;
   });
 };
