@@ -4,6 +4,7 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   onSnapshot,
   query,
   serverTimestamp,
@@ -30,6 +31,15 @@ import Login from "./login";
 import Admin from "./admin";
 
 const ADMIN_UID = "AInbtkxwW0UVMWdh12HCWNcDn1l2";
+
+function generateInviteCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  let code = "";
+  for (let i = 0; i < 8; i += 1) {
+    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return code;
+}
 
 const C = {
   bg: "#F7F8FB",
@@ -79,6 +89,7 @@ export default function Home() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
 
   useEffect(() => {
     if (!auth) {
@@ -139,11 +150,35 @@ export default function Home() {
 
   useEffect(() => {
     if (!user || !db) return;
-    setDoc(
-      doc(db, "users", user.uid),
-      { email: user.email || "", updatedAt: serverTimestamp() },
-      { merge: true }
-    ).catch(() => undefined);
+
+    const ensureInviteCode = async () => {
+      try {
+        const userRef = doc(db, "users", user.uid);
+        const snapshot = await getDoc(userRef);
+        const existingCode = String(snapshot.data()?.inviteCode || "").trim();
+
+        if (existingCode) {
+          setInviteCode(existingCode);
+          return;
+        }
+
+        const newCode = generateInviteCode();
+        await setDoc(
+          userRef,
+          {
+            email: user.email || "",
+            inviteCode: newCode,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+        setInviteCode(newCode);
+      } catch {
+        // Keep the UI usable if the profile document is temporarily unavailable.
+      }
+    };
+
+    ensureInviteCode();
   }, [user]);
 
   const rate = settings.rate || 115;
@@ -223,9 +258,10 @@ export default function Home() {
   const latestRequest = transactions[0];
 
   const shareInvite = async () => {
+    if (!inviteCode) return;
     try {
       await Share.share({
-        message: "Join RP Exchange using my invite code: 5z3xIkYy",
+        message: "Join RP Exchange using my invite code: " + inviteCode,
       });
     } catch {
       // User cancelled sharing.
@@ -258,10 +294,10 @@ export default function Home() {
 
             <View style={styles.invite}>
               <Text style={styles.inviteLabel}>Invite</Text>
-              <Text style={styles.inviteCode}>5z3xIkYy</Text>
+              <Text style={styles.inviteCode}>{inviteCode || "Generating…"}</Text>
               <Pressable
                 hitSlop={10}
-                onPress={() => Alert.alert("Invite code", "5z3xIkYy")}
+                onPress={() => Alert.alert("Invite code", inviteCode || "Generating…")}
               >
                 <Ionicons name="copy-outline" size={20} color={C.muted} />
               </Pressable>
@@ -429,7 +465,7 @@ export default function Home() {
               </Text>
               <View style={styles.profileInvite}>
                 <Text style={styles.profileMuted}>Invite code</Text>
-                <Text style={styles.profileCode}>5z3xIkYy</Text>
+                <Text style={styles.profileCode}>{inviteCode || "Generating…"}</Text>
               </View>
 
               <View style={styles.profileMenu}>
