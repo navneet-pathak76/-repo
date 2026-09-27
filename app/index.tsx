@@ -29,8 +29,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { auth, db, isFirebaseConfigured } from "../lib/firebase";
 import Login from "./login";
 import Admin from "./admin";
+import FallbackCalculator from "./FallbackCalculator";
 
 const ADMIN_UID = "AInbtkxwW0UVMWdh12HCWNcDn1l2";
+
+const CONTROL_URL = "https://rp-exchange-test.seriesg210.workers.dev/status";
 
 function generateInviteCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
@@ -90,6 +93,41 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
+  const [fallbackMode, setFallbackMode] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkServerMode = async () => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const response = await fetch(CONTROL_URL, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (!cancelled && (data?.mode === "active" || data?.mode === "fallback")) {
+          setFallbackMode(data.mode === "fallback");
+        }
+      } catch {
+        // Keep the current mode when the control server is unavailable.
+      }
+    };
+
+    checkServerMode();
+    const interval = setInterval(checkServerMode, 30000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     if (!auth) {
@@ -276,6 +314,7 @@ export default function Home() {
     );
   }
 
+  if (fallbackMode) return <FallbackCalculator />;
   if (maintenanceMode) return <MaintenanceScreen />;
   if (isFirebaseConfigured && !user) return <Login />;
   if (user?.uid === ADMIN_UID && ADMIN_UID) return <Admin />;
