@@ -18,12 +18,14 @@ import {
   SafeAreaView,
   ScrollView,
   Share,
+  Linking,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -35,6 +37,7 @@ import FallbackCalculator from "./FallbackCalculator";
 const ADMIN_UID = "AInbtkxwW0UVMWdh12HCWNcDn1l2";
 
 const CONTROL_URL = "https://rp-exchange-test.seriesg210.workers.dev/status";
+const APP_VERSION = String(Constants.expoConfig?.version || "1.0.1");
 
 function generateInviteCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
@@ -96,6 +99,12 @@ export default function Home() {
   const [inviteCode, setInviteCode] = useState("");
   const [fallbackMode, setFallbackMode] = useState(false);
   const [userFallbackMode, setUserFallbackMode] = useState(false);
+  const [release, setRelease] = useState({
+    latestVersion: APP_VERSION,
+    minimumVersion: "1.0.0",
+    apkUrl: "",
+    updateMessage: "",
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -151,9 +160,27 @@ export default function Home() {
     return onSnapshot(
       doc(db, "appSettings", "userModes", user.uid),
       (snapshot) => {
-        setUserFallbackMode(snapshot.exists() && snapshot.data().mode === "fallback");
+        const mode = snapshot.exists() ? snapshot.data().mode : "active";
+        setUserFallbackMode(mode === "fallback");
       },
       () => setUserFallbackMode(false)
+    );
+  }, [user]);
+
+  useEffect(() => {
+    if (!db || !user) return;
+    return onSnapshot(
+      doc(db, "appSettings", "release"),
+      (snapshot) => {
+        if (!snapshot.exists()) return;
+        const data = snapshot.data();
+        setRelease({
+          latestVersion: String(data.latestVersion || APP_VERSION),
+          minimumVersion: String(data.minimumVersion || "1.0.0"),
+          apkUrl: String(data.apkUrl || ""),
+          updateMessage: String(data.updateMessage || ""),
+        });
+      }
     );
   }, [user]);
 
@@ -237,6 +264,8 @@ export default function Home() {
   }, [user]);
 
   const rate = settings.rate || 115;
+  const updateRequired = compareVersions(APP_VERSION, release.minimumVersion) < 0;
+  const updateAvailable = compareVersions(APP_VERSION, release.latestVersion) < 0;
   const MIN_USDT = 50;
   const MIN_INR = MIN_USDT * rate;
 
@@ -345,6 +374,9 @@ export default function Home() {
 
   if (fallbackMode || userFallbackMode) return <FallbackCalculator />;
   if (maintenanceMode) return <MaintenanceScreen />;
+  if (updateRequired) return <UpdateScreen version={release.latestVersion} message={release.updateMessage} apkUrl={release.apkUrl} forced />;
+  if (updateAvailable) return <UpdateScreen version={release.latestVersion} message={release.updateMessage} apkUrl={release.apkUrl} />;
+  if (false) return null;
   if (isFirebaseConfigured && !user) return <Login />;
   if (user?.uid === ADMIN_UID && ADMIN_UID) return <Admin />;
 
@@ -661,6 +693,40 @@ export default function Home() {
       </View>
     </SafeAreaView>
   );
+}
+
+function compareVersions(a:string,b:string){
+  const aa=a.split(".").map(Number), bb=b.split(".").map(Number);
+  for(let i=0;i<3;i++){
+    const x=Number.isFinite(aa[i])?aa[i]:0, y=Number.isFinite(bb[i])?bb[i]:0;
+    if(x!==y)return x-y;
+  }
+  return 0;
+}
+
+function UpdateScreen({version,message,apkUrl,forced}:{version:string;message:string;apkUrl:string;forced?:boolean}){
+  const openUpdate=async()=>{
+    if(!apkUrl.trim()){
+      Alert.alert("Update unavailable","The admin has not published an update URL yet.");
+      return;
+    }
+    try{await Linking.openURL(apkUrl.trim());}
+    catch{Alert.alert("Could not open update","Please contact support for the latest APK.");}
+  };
+  return <SafeAreaView style={styles.maintenanceSafe}>
+    <View style={styles.maintenanceCard}>
+      <View style={styles.maintenanceIcon}><Ionicons name="cloud-download-outline" size={30} color={C.blue}/></View>
+      <Text style={styles.maintenanceTitle}>{forced?"UPDATE REQUIRED":"UPDATE AVAILABLE"}</Text>
+      <Text style={styles.maintenanceText}>{message||"A newer version of RP Exchange is available."}</Text>
+      <Text style={[styles.maintenanceText,{marginTop:8,fontWeight:"700"}]}>Latest version: {version}</Text>
+      <Pressable style={[styles.primary,{marginTop:18,width:"100%"}]} onPress={openUpdate}>
+        <Text style={styles.primaryText}>Update App</Text>
+      </Pressable>
+      {!forced?<Pressable style={{marginTop:12}} onPress={()=>{}}>
+        <Text style={styles.maintenanceText}>Continue with current version</Text>
+      </Pressable>:null}
+    </View>
+  </SafeAreaView>;
 }
 
 function MaintenanceScreen() {
