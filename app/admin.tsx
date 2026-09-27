@@ -19,6 +19,7 @@ export default function Admin(){
  const [minimumVersion,setMinimumVersion]=useState("1.0.0");
  const [apkUrl,setApkUrl]=useState("");
  const [updateMessage,setUpdateMessage]=useState("A newer version of RP Exchange is available.");
+ const [publishingUpdate,setPublishingUpdate]=useState(false);
 
  useEffect(()=>{
   if(!db)return;
@@ -45,14 +46,7 @@ export default function Admin(){
    }
    setUserModes(next);
   });
-  const f=onSnapshot(doc(db,"appSettings/release"),snap=>{
-   if(!snap.exists())return;
-   const data=snap.data();
-   setLatestVersion(String(data.latestVersion||"1.0.1"));
-   setMinimumVersion(String(data.minimumVersion||"1.0.0"));
-   setApkUrl(String(data.apkUrl||""));
-   setUpdateMessage(String(data.updateMessage||"A newer version of RP Exchange is available."));
-  });
+
   return()=>{a();b();c();d();e();f();};
  },[]);
 
@@ -75,22 +69,18 @@ export default function Admin(){
   }
  };
 
- const saveRelease=async()=>{
-  if(!db)return;
-  if(!latestVersion.trim()||!minimumVersion.trim()||!apkUrl.trim()){
-   Alert.alert("Missing update details","Enter latest version, minimum version and the APK URL.");
-   return;
-  }
+ const publishLatestUpdate=async()=>{
+  if(!functions)return;
   try{
-   await setDoc(doc(db,"appSettings","release"),{
-    latestVersion:latestVersion.trim(),
-    minimumVersion:minimumVersion.trim(),
-    apkUrl:apkUrl.trim(),
-    updateMessage:updateMessage.trim()||"A newer version of RP Exchange is available.",
-    updatedAt:new Date().toISOString()
-   },{merge:true});
-   Alert.alert("Update policy saved","Older app versions will be prompted to update.");
-  }catch{Alert.alert("Save failed","Firebase rejected the update policy.");}
+   setPublishingUpdate(true);
+   const publish=httpsCallable(functions,"publishLatestUpdate");
+   const result:any=await publish({});
+   Alert.alert("Update published",String(result?.data?.message||"The latest main branch update has been queued for all compatible users."));
+  }catch(error:any){
+   Alert.alert("Publish failed",String(error?.message||"The update could not be queued."));
+  }finally{
+   setPublishingUpdate(false);
+  }
  };
 
  const setMaintenance=async(enabled:boolean)=>{
@@ -162,12 +152,15 @@ export default function Admin(){
 
   <View style={s.card}>
    <Text style={s.cardTitle}>App updates</Text>
-   <Text style={s.muted}>Set the latest APK and the minimum allowed version. Users below the minimum version are blocked until they update.</Text>
-   <Field label="Latest Version" value={latestVersion} onChangeText={setLatestVersion}/>
-   <Field label="Minimum Version" value={minimumVersion} onChangeText={setMinimumVersion}/>
-   <Field label="APK Update URL" value={apkUrl} onChangeText={setApkUrl}/>
-   <Field label="Update Message" value={updateMessage} onChangeText={setUpdateMessage}/>
-   <Pressable style={s.primary} onPress={saveRelease}><Text style={s.primaryText}>Push Update Policy</Text></Pressable>
+   <Text style={s.muted}>Publishes the current main-branch code through the production OTA channel. All compatible installed users receive the update automatically.</Text>
+   <View style={s.updateStatus}>
+    <Text style={s.updateStatusTitle}>Production channel</Text>
+    <Text style={s.updateStatusText}>● Ready to publish</Text>
+   </View>
+   <Pressable disabled={publishingUpdate} style={[s.primary,{marginTop:12,opacity:publishingUpdate?.55:1}]} onPress={publishLatestUpdate}>
+    <Text style={s.primaryText}>{publishingUpdate?"PUBLISHING…":"PUSH LATEST UPDATE TO ALL USERS"}</Text>
+   </Pressable>
+   <Text style={s.muted}>Native Android changes still require a new APK build.</Text>
   </View>
 
   <View style={s.card}>
