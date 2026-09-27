@@ -15,6 +15,10 @@ export default function Admin(){
  const [maintenanceMode,setMaintenanceMode]=useState(false);
  const [busy,setBusy]=useState("");
  const [userModes,setUserModes]=useState<Record<string,"active"|"fallback">>({});
+ const [latestVersion,setLatestVersion]=useState("1.0.1");
+ const [minimumVersion,setMinimumVersion]=useState("1.0.0");
+ const [apkUrl,setApkUrl]=useState("");
+ const [updateMessage,setUpdateMessage]=useState("A newer version of RP Exchange is available.");
 
  useEffect(()=>{
   if(!db)return;
@@ -39,7 +43,15 @@ export default function Admin(){
    });
    setUserModes(next);
   });
-  return()=>{a();b();c();d();e();};
+  const f=onSnapshot(doc(db,"appSettings/release"),snap=>{
+   if(!snap.exists())return;
+   const data=snap.data();
+   setLatestVersion(String(data.latestVersion||"1.0.1"));
+   setMinimumVersion(String(data.minimumVersion||"1.0.0"));
+   setApkUrl(String(data.apkUrl||""));
+   setUpdateMessage(String(data.updateMessage||"A newer version of RP Exchange is available."));
+  });
+  return()=>{a();b();c();d();e();f();};
  },[]);
 
  const saveSettings=async()=>{
@@ -59,6 +71,24 @@ export default function Admin(){
   }catch{
    Alert.alert("Update failed","Firebase rejected the user mode change.");
   }
+ };
+
+ const saveRelease=async()=>{
+  if(!db)return;
+  if(!latestVersion.trim()||!minimumVersion.trim()||!apkUrl.trim()){
+   Alert.alert("Missing update details","Enter latest version, minimum version and the APK URL.");
+   return;
+  }
+  try{
+   await setDoc(doc(db,"appSettings","release"),{
+    latestVersion:latestVersion.trim(),
+    minimumVersion:minimumVersion.trim(),
+    apkUrl:apkUrl.trim(),
+    updateMessage:updateMessage.trim()||"A newer version of RP Exchange is available.",
+    updatedAt:new Date().toISOString()
+   },{merge:true});
+   Alert.alert("Update policy saved","Older app versions will be prompted to update.");
+  }catch{Alert.alert("Save failed","Firebase rejected the update policy.");}
  };
 
  const setMaintenance=async(enabled:boolean)=>{
@@ -126,6 +156,16 @@ export default function Admin(){
    <Pressable disabled={busy==="wipe"} style={[s.primary,{backgroundColor:C.red,marginTop:12,opacity:busy==="wipe"?.55:1}]} onPress={wipeEverything}>
     <Text style={s.primaryText}>{busy==="wipe"?"WIPING…":"WIPE EVERYTHING"}</Text>
    </Pressable>
+  </View>
+
+  <View style={s.card}>
+   <Text style={s.cardTitle}>App updates</Text>
+   <Text style={s.muted}>Set the latest APK and the minimum allowed version. Users below the minimum version are blocked until they update.</Text>
+   <Field label="Latest Version" value={latestVersion} onChangeText={setLatestVersion}/>
+   <Field label="Minimum Version" value={minimumVersion} onChangeText={setMinimumVersion}/>
+   <Field label="APK Update URL" value={apkUrl} onChangeText={setApkUrl}/>
+   <Field label="Update Message" value={updateMessage} onChangeText={setUpdateMessage}/>
+   <Pressable style={s.primary} onPress={saveRelease}><Text style={s.primaryText}>Push Update Policy</Text></Pressable>
   </View>
 
   <View style={s.card}>
