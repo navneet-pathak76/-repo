@@ -125,7 +125,7 @@ export default function Home() {
 
     checkForProductionUpdate();
 
-    const checkServerMode = async () => = async () => {
+    const checkServerMode = async () => {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
