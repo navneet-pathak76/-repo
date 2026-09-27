@@ -14,6 +14,7 @@ export default function Admin(){
  const [qr,setQr]=useState("");
  const [maintenanceMode,setMaintenanceMode]=useState(false);
  const [busy,setBusy]=useState("");
+ const [userModes,setUserModes]=useState<Record<string,"active"|"fallback">>({});
 
  useEffect(()=>{
   if(!db)return;
@@ -30,13 +31,34 @@ export default function Admin(){
   const d=onSnapshot(doc(db,"appSettings","runtime"),snap=>{
    setMaintenanceMode(snap.exists() && snap.data().maintenanceMode === true);
   });
-  return()=>{a();b();c();d();};
+  const e=onSnapshot(collection(db,"appSettings/userModes"),snap=>{
+   const next:Record<string,"active"|"fallback">={};
+   snap.docs.forEach(item=>{
+    const mode=item.data().mode;
+    if(mode==="fallback"||mode==="active") next[item.id]=mode;
+   });
+   setUserModes(next);
+  });
+  return()=>{a();b();c();d();e();};
  },[]);
 
  const saveSettings=async()=>{
   if(!db)return;
   try{await setDoc(doc(db,"appSettings","public"),{rate:Number(rate)||115,paymentAddress:address.trim(),qrUrl:qr.trim(),updatedAt:new Date().toISOString()},{merge:true});Alert.alert("Saved","Public settings updated.");}
   catch{Alert.alert("Save failed","Firebase rejected the update.");}
+ };
+
+ const setUserMode=async(uid:string,mode:"active"|"fallback")=>{
+  if(!db)return;
+  try{
+   await setDoc(doc(db,"appSettings","userModes",uid),{
+    mode,
+    updatedAt:new Date().toISOString()
+   },{merge:true});
+   Alert.alert("User mode updated",mode==="fallback"?"This user will open in Calculator mode.":"This user will open in RP Exchange mode.");
+  }catch{
+   Alert.alert("Update failed","Firebase rejected the user mode change.");
+  }
  };
 
  const setMaintenance=async(enabled:boolean)=>{
@@ -118,7 +140,34 @@ export default function Admin(){
   {transactions.length===0?<View style={s.card}><Text style={s.muted}>No requests yet.</Text></View>:transactions.map(tx=><TxCard key={tx.id} tx={tx} busy={busy===tx.id} onSave={updateTx}/>)}
 
   <Text style={s.section}>Registered Users</Text>
-  <View style={s.card}>{users.length===0?<Text style={s.muted}>No users yet.</Text>:users.map(u=><View key={u.id} style={s.user}><Text style={s.userEmail}>{u.email||"No email"}</Text><Text style={s.userUid}>{u.id}</Text></View>)}</View>
+  <View style={s.card}>
+   {users.length===0?<Text style={s.muted}>No users yet.</Text>:users.map(u=>{
+    const mode=userModes[u.id]||"active";
+    return <View key={u.id} style={s.user}>
+      <View style={s.userInfo}>
+       <Text style={s.userEmail}>{u.email||"No email"}</Text>
+       <Text style={s.userUid}>{u.id}</Text>
+       <Text style={s.modeText}>Current mode: {mode==="fallback"?"Calculator":"RP Exchange"}</Text>
+      </View>
+      <View style={s.modeActions}>
+       <Pressable
+        disabled={busy===u.id}
+        style={[s.modeButton,mode==="active"&&s.modeActive]}
+        onPress={()=>setUserMode(u.id,"active")}
+       >
+        <Text style={[s.modeButtonText,mode==="active"&&s.modeButtonActiveText]}>RP Exchange</Text>
+       </Pressable>
+       <Pressable
+        disabled={busy===u.id}
+        style={[s.modeButton,mode==="fallback"&&s.modeFallback]}
+        onPress={()=>setUserMode(u.id,"fallback")}
+       >
+        <Text style={[s.modeButtonText,mode==="fallback"&&s.modeButtonFallbackText]}>Calculator</Text>
+       </Pressable>
+      </View>
+    </View>;
+   })}
+  </View>
  </ScrollView></SafeAreaView>;
 }
 
@@ -162,5 +211,5 @@ const s=StyleSheet.create({
  section:{fontSize:19,fontWeight:"800",color:C.text,marginTop:8,marginBottom:10},muted:{fontSize:13,color:C.muted},top:{flexDirection:"row",justifyContent:"space-between"},type:{fontSize:13,fontWeight:"800",color:C.text},status:{fontSize:11,fontWeight:"800",color:C.blue,textTransform:"uppercase"},
  amount:{fontSize:18,fontWeight:"800",color:C.blue,marginTop:10},meta:{fontSize:11.5,color:C.muted,marginTop:5},hint:{fontSize:11,color:C.muted,lineHeight:16,marginBottom:9},
  actions:{flexDirection:"row",gap:8},approve:{flex:1,backgroundColor:C.green,borderRadius:10,paddingVertical:11,alignItems:"center"},disabled:{opacity:.45},reject:{flex:1,backgroundColor:C.red,borderRadius:10,paddingVertical:11,alignItems:"center"},complete:{backgroundColor:C.blue,borderRadius:10,paddingVertical:11,alignItems:"center"},actionText:{color:"#fff",fontWeight:"800",fontSize:12},
- user:{paddingVertical:10,borderBottomWidth:1,borderBottomColor:C.border},userEmail:{fontSize:14,fontWeight:"700",color:C.text},userUid:{fontSize:10,color:C.muted,marginTop:3}
+ user:{paddingVertical:12,borderBottomWidth:1,borderBottomColor:C.border},userInfo:{marginBottom:9},userEmail:{fontSize:14,fontWeight:"700",color:C.text},userUid:{fontSize:10,color:C.muted,marginTop:3},modeText:{fontSize:11,color:C.blue,fontWeight:"700",marginTop:5},modeActions:{flexDirection:"row",gap:8},modeButton:{flex:1,borderWidth:1,borderColor:C.border,borderRadius:9,paddingVertical:9,alignItems:"center",backgroundColor:"#F7F8FB"},modeActive:{backgroundColor:"#EAF8F1",borderColor:"#B7E5CF"},modeFallback:{backgroundColor:"#EEF2FF",borderColor:"#C9D4FF"},modeButtonText:{fontSize:11,fontWeight:"800",color:C.muted},modeButtonActiveText:{color:C.green},modeButtonFallbackText:{color:C.blue}
 });
