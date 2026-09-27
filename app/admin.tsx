@@ -35,7 +35,7 @@ export default function Admin(){
   const d=onSnapshot(doc(db,"appSettings","runtime"),snap=>{
    setMaintenanceMode(snap.exists() && snap.data().maintenanceMode === true);
   });
-  const e=onSnapshot(collection(db,"appSettings/userModes"),snap=>{
+  const e=onSnapshot(collection(db,"userModes"),snap=>{
    const next:Record<string,"active"|"fallback">={};
    snap.docs.forEach(item=>{
     const mode=item.data().mode;
@@ -63,7 +63,7 @@ export default function Admin(){
  const setUserMode=async(uid:string,mode:"active"|"fallback")=>{
   if(!db)return;
   try{
-   await setDoc(doc(db,"appSettings","userModes",uid),{
+   await setDoc(doc(db,"userModes",uid),{
     mode,
     updatedAt:new Date().toISOString()
    },{merge:true});
