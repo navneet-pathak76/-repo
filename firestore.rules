@@ -1,63 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return signedIn() && request.auth.uid == "AInbtkxwW0UVMWdh12HCWNcDn1l2";
-    }
-
-    function maintenanceMode() {
-      return get(/databases/$(database)/documents/appSettings/runtime).data.maintenanceMode == true;
-    }
-
-    match /appSettings/runtime {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /appSettings/{document} {
-      allow read: if signedIn();
-      allow write: if isAdmin();
-    }
-
-    match /userModes/{userId} {
-      allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
-      allow write: if isAdmin();
-    }
-
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && request.auth.uid == "AInbtkxwW0UVMWdh12HCWNcDn1l2"; }
+    function maintenanceMode() { return get(/databases/$(database)/documents/appSettings/runtime).data.maintenanceMode == true; }
+    match /appSettings/runtime { allow read: if true; allow write: if isAdmin(); }
+    match /appSettings/public { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /appSettings/release { allow read: if signedIn(); allow write: if isAdmin(); }
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
       allow create: if signedIn() && request.auth.uid == userId;
-      allow update: if signedIn() && request.auth.uid == userId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          "email", "displayName", "inviteCode", "updatedAt"
-        ]);
+      allow update: if signedIn() && request.auth.uid == userId && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["email", "displayName", "balanceUsdt", "updatedAt"]);
       allow delete: if isAdmin();
     }
-
     match /transactions/{transactionId} {
-      allow read: if signedIn()
-        && (isAdmin() || resource.data.userId == request.auth.uid);
-
-      allow create: if signedIn()
-        && !maintenanceMode()
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.status == "pending"
-        && request.resource.data.type in ["buy", "sell"]
-        && request.resource.data.amount is number
-        && request.resource.data.rate is number
-        && request.resource.data.usdtAmount is number
-        && request.resource.data.usdtAmount >= 50
-        && request.resource.data.inrAmount is number
-        && request.resource.data.keys().hasOnly([
-          "userId", "type", "amount", "rate", "usdtAmount", "inrAmount",
-          "status", "createdAt"
-        ]);
-
+      allow read: if signedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if signedIn() && !maintenanceMode() && request.resource.data.userId == request.auth.uid && request.resource.data.status == "pending" && request.resource.data.simulated == true && request.resource.data.type in ["buy", "sell"] && request.resource.data.amount is number && request.resource.data.rate is number && request.resource.data.usdtAmount is number && request.resource.data.usdtAmount >= 50 && request.resource.data.inrAmount is number && request.resource.data.keys().hasOnly(["userId", "type", "amount", "rate", "usdtAmount", "inrAmount", "status", "simulated", "createdAt"]);
       allow update, delete: if isAdmin();
     }
+    match /{document=**} { allow read, write: if false; }
   }
 }
