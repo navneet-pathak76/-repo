@@ -24,5 +24,15 @@
     "ios": {
       "bundleIdentifier": "com.example.rpexchange"
     }
-  }
+  },
+  "plugins": [
+    [
+      "@howincodes/expo-dynamic-app-icon",
+      {
+        "calculator": {
+          "android": "./assets/calculator-icon.png"
+        }
+      }
+    ]
+  ]
 }
