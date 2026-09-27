@@ -59,11 +59,14 @@ export default function Admin(){
  const setUserMode=async(uid:string,mode:"active"|"fallback")=>{
   if(!db)return;
   try{
+   const nextModes={...userModes,[uid]:mode};
    await setDoc(doc(db,"appSettings","userModes"),{
-    [`modes.${uid}`]: mode,
-    updatedAt:new Date().toISOString()
+    modes: nextModes,
+    updatedAt:new Date().toISOString(),
+    version: Date.now()
    },{merge:true});
-   Alert.alert("User mode updated",mode==="fallback"?"This user will open in Calculator mode.":"This user will open in RP Exchange mode.");
+   setUserModes(nextModes);
+   Alert.alert("User mode updated",mode==="fallback"?"This user will open in Calculator mode until you switch them back.":"This user will open in RP Exchange mode.");
   }catch{
    Alert.alert("Update failed","Firebase rejected the user mode change.");
   }
