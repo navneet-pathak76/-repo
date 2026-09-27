@@ -372,13 +372,12 @@ export default function Home() {
     );
   }
 
-  if (fallbackMode || userFallbackMode) return <FallbackCalculator />;
-  if (maintenanceMode) return <MaintenanceScreen />;
-  if (updateRequired) return <UpdateScreen version={release.latestVersion} message={release.updateMessage} apkUrl={release.apkUrl} forced />;
-  if (updateAvailable) return <UpdateScreen version={release.latestVersion} message={release.updateMessage} apkUrl={release.apkUrl} />;
-  if (false) return null;
   if (isFirebaseConfigured && !user) return <Login />;
   if (user?.uid === ADMIN_UID && ADMIN_UID) return <Admin />;
+  if (maintenanceMode) return <MaintenanceScreen />;
+  if (updateRequired) return <UpdateScreen version={release.latestVersion} message={release.updateMessage} apkUrl={release.apkUrl} forced />;
+  if (fallbackMode || userFallbackMode) return <FallbackCalculator />;
+  if (updateAvailable) return <UpdateScreen version={release.latestVersion} message={release.updateMessage} apkUrl={release.apkUrl} />;
 
   return (
     <SafeAreaView style={styles.safe}>
