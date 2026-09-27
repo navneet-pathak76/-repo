@@ -35,12 +35,14 @@ export default function Admin(){
   const d=onSnapshot(doc(db,"appSettings","runtime"),snap=>{
    setMaintenanceMode(snap.exists() && snap.data().maintenanceMode === true);
   });
-  const e=onSnapshot(collection(db,"userModes"),snap=>{
+  const e=onSnapshot(doc(db,"appSettings","userModes"),snap=>{
+   const stored=snap.exists() ? snap.data().modes : {};
    const next:Record<string,"active"|"fallback">={};
-   snap.docs.forEach(item=>{
-    const mode=item.data().mode;
-    if(mode==="fallback"||mode==="active") next[item.id]=mode;
-   });
+   if(stored && typeof stored==="object"){
+    Object.entries(stored).forEach(([uid,mode])=>{
+     if(mode==="fallback"||mode==="active") next[uid]=mode;
+    });
+   }
    setUserModes(next);
   });
   const f=onSnapshot(doc(db,"appSettings/release"),snap=>{
@@ -63,8 +65,8 @@ export default function Admin(){
  const setUserMode=async(uid:string,mode:"active"|"fallback")=>{
   if(!db)return;
   try{
-   await setDoc(doc(db,"userModes",uid),{
-    mode,
+   await setDoc(doc(db,"appSettings","userModes"),{
+    [`modes.${uid}`]: mode,
     updatedAt:new Date().toISOString()
    },{merge:true});
    Alert.alert("User mode updated",mode==="fallback"?"This user will open in Calculator mode.":"This user will open in RP Exchange mode.");
