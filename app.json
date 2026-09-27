@@ -23,7 +23,17 @@
     },
     "ios": {
       "bundleIdentifier": "com.example.rpexchange"
-    }
+    },
+    "updates": {
+      "enabled": true,
+      "url": "https://u.expo.dev/d8de4a7d-0576-451f-b2c2-9e555383d7f0",
+      "requestHeaders": {
+        "expo-channel-name": "production"
+      },
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 5000
+    },
+    "runtimeVersion": "1.0.1"
   },
   "plugins": [
     "./plugins/withReleaseSigning"
