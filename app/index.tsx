@@ -791,6 +791,14 @@ function UpdateScreen({version,message,apkUrl,forced}:{version:string;message:st
   </SafeAreaView>;
 }
 
+function LoadingScreen() {
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center" }}>
+      <Text style={{ fontSize: 16, fontWeight: "800", color: C.text }}>Loading…</Text>
+    </SafeAreaView>
+  );
+}
+
 function MaintenanceScreen() {
   return (
     <SafeAreaView style={styles.maintenanceSafe}>
