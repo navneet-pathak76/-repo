@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -49,6 +49,16 @@ jobs:
 
       - name: Generate Android project
         run: npx expo prebuild --clean
+
+      - name: Optimize Gradle build
+        working-directory: android
+        run: |
+          cat >> gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8
+          org.gradle.parallel=true
+          org.gradle.caching=true
+          org.gradle.workers.max=2
+          EOF
 
       - name: Prepare release keystore
         env:
@@ -94,7 +104,7 @@ jobs:
           set -a
           source signing.env
           set +a
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --parallel --max-workers=2 --stacktrace
 
       - name: Verify APK signature
         run: |
