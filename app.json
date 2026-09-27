@@ -26,13 +26,6 @@
     }
   },
   "plugins": [
-    [
-      "@howincodes/expo-dynamic-app-icon",
-      {
-        "calculator": {
-          "android": "./assets/calculator-icon.png"
-        }
-      }
-    ]
+    "./plugins/withReleaseSigning"
   ]
 }
