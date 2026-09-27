@@ -25,7 +25,6 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
-import { setAppIcon } from "@howincodes/expo-dynamic-app-icon";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { auth, db, isFirebaseConfigured } from "../lib/firebase";
@@ -142,24 +141,6 @@ export default function Home() {
       setLoading(false);
     });
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const applyIcon = async () => {
-      try {
-        await setAppIcon(userFallbackMode ? "calculator" : null, true);
-      } catch {
-        // Icon switching is optional; the in-app mode remains authoritative.
-      }
-    };
-
-    if (!cancelled) applyIcon();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userFallbackMode]);
 
   useEffect(() => {
     if (!db || !user) {
