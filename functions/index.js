@@ -9,42 +9,9 @@ setGlobalOptions({ region: "asia-south1", maxInstances: 1 });
 initializeApp();
 
 const ADMIN_UID = "AInbtkxwW0UVMWdh12HCWNcDn1l2";
-const WIPE_CONFIRMATION = "WIPE EVERYTHING";
 const GITHUB_ACTIONS_TOKEN = defineSecret("GITHUB_ACTIONS_TOKEN");
 const GITHUB_REPOSITORY = "navneet-pathak76/-repo";
 const GITHUB_WORKFLOW = "publish-ota.yml";
-
-exports.wipeTestEnvironment = onCall(async (request) => {
-  if (!request.auth || request.auth.uid !== ADMIN_UID) {
-    throw new HttpsError("permission-denied", "Admin access required.");
-  }
-
-  if (request.data?.confirmation !== WIPE_CONFIRMATION) {
-    throw new HttpsError("failed-precondition", "Explicit wipe confirmation required.");
-  }
-
-  const db = getFirestore();
-  const auth = getAuth();
-
-  const collections = await db.listCollections();
-  for (const collection of collections) {
-    await db.recursiveDelete(collection);
-  }
-
-  let page = await auth.listUsers(1000);
-  while (page.users.length) {
-    await auth.deleteUsers(page.users.map((user) => user.uid));
-    if (!page.pageToken) break;
-    page = await auth.listUsers(1000, page.pageToken);
-  }
-
-  return {
-    ok: true,
-    firestoreCollectionsDeleted: collections.length,
-    authUsersDeleted: true
-  };
-});
-
 
 exports.publishLatestUpdate = onCall(
   { secrets: [GITHUB_ACTIONS_TOKEN] },
@@ -78,7 +45,6 @@ exports.publishLatestUpdate = onCall(
 
     if (!response.ok) {
       const body = await response.text();
-      console.error("GitHub workflow dispatch failed", response.status, body);
       throw new HttpsError(
         "internal",
         `GitHub rejected the update request (HTTP ${response.status}).`
@@ -114,6 +80,7 @@ exports.completeTransaction = onCall(async (request) => {
     }
 
     const tx = txSnap.data();
+    if (tx.simulated === false) throw new HttpsError("failed-precondition", "Only simulated transactions can be completed.");
     if (tx.balanceApplied === true && tx.status === "completed") {
       const userSnap = await transaction.get(db.collection("users").doc(tx.userId));
       return {
@@ -172,8 +139,8 @@ exports.completeTransaction = onCall(async (request) => {
   return {
     ok: true,
     message: result.alreadyCompleted
-      ? "Transaction was already completed; no duplicate balance credit was applied."
-      : "Transaction completed and the user's USDT balance was updated.",
+      ? "Simulation was already completed; no duplicate simulated balance credit was applied."
+      : "Simulation completed and the user's simulated balance was updated.",
     balanceUsdt: result.balance,
   };
 });
