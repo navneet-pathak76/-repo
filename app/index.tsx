@@ -159,9 +159,10 @@ export default function Home() {
     }
 
     return onSnapshot(
-      doc(db, "userModes", user.uid),
+      doc(db, "appSettings", "userModes"),
       (snapshot) => {
-        const mode = snapshot.exists() ? snapshot.data().mode : "active";
+        const modes = snapshot.exists() ? snapshot.data().modes : null;
+        const mode = modes && typeof modes === "object" ? modes[user.uid] : "active";
         setUserFallbackMode(mode === "fallback");
       },
       () => setUserFallbackMode(false)
