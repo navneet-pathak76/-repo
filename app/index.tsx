@@ -98,6 +98,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
+  const [balanceUsdt, setBalanceUsdt] = useState(0);
   const [fallbackMode, setFallbackMode] = useState(false);
   const [userFallbackMode, setUserFallbackMode] = useState(false);
   const [release, setRelease] = useState({
@@ -221,6 +222,22 @@ export default function Home() {
       });
     });
   }, []);
+
+  useEffect(() => {
+    if (!user || !db) {
+      setBalanceUsdt(0);
+      return;
+    }
+
+    return onSnapshot(
+      doc(db, "users", user.uid),
+      (snapshot) => {
+        const balance = Number(snapshot.data()?.balanceUsdt || 0);
+        setBalanceUsdt(Number.isFinite(balance) && balance >= 0 ? balance : 0);
+      },
+      () => setBalanceUsdt(0)
+    );
+  }, [user]);
 
   useEffect(() => {
     if (!user || !db) {
@@ -447,7 +464,7 @@ export default function Home() {
               <View style={styles.balanceCard}>
                 <Text style={styles.label}>Current Balance</Text>
                 <View style={styles.balanceRow}>
-                  <Text style={styles.balance}>{dataZeroed ? "0.00" : "89.1"}</Text>
+                  <Text style={styles.balance}>{dataZeroed ? "0.00" : balanceUsdt.toFixed(2)}</Text>
                   <Ionicons name="chevron-forward" size={22} color={C.muted} />
                 </View>
                 <Text style={styles.balanceUnit}>USDT</Text>
