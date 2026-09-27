@@ -101,6 +101,7 @@ export default function Home() {
   const [balanceUsdt, setBalanceUsdt] = useState(0);
   const [fallbackMode, setFallbackMode] = useState(false);
   const [userFallbackMode, setUserFallbackMode] = useState(false);
+  const [userModeLoaded, setUserModeLoaded] = useState(false);
   const [release, setRelease] = useState({
     latestVersion: APP_VERSION,
     minimumVersion: "1.0.0",
@@ -171,17 +172,23 @@ export default function Home() {
   useEffect(() => {
     if (!db || !user) {
       setUserFallbackMode(false);
+      setUserModeLoaded(false);
       return;
     }
 
+    setUserModeLoaded(false);
     return onSnapshot(
       doc(db, "appSettings", "userModes"),
       (snapshot) => {
         const modes = snapshot.exists() ? snapshot.data().modes : null;
         const mode = modes && typeof modes === "object" ? modes[user.uid] : "active";
         setUserFallbackMode(mode === "fallback");
+        setUserModeLoaded(true);
       },
-      () => setUserFallbackMode(false)
+      () => {
+        setUserFallbackMode(false);
+        setUserModeLoaded(true);
+      }
     );
   }, [user]);
 
@@ -428,8 +435,9 @@ export default function Home() {
   if (isFirebaseConfigured && !user) return <Login />;
   if (user?.uid === ADMIN_UID && ADMIN_UID) return <Admin />;
   if (maintenanceMode) return <MaintenanceScreen />;
+  if (user && !userModeLoaded) return <LoadingScreen />;
   if (updateRequired) return <UpdateScreen version={release.latestVersion} message={release.updateMessage} apkUrl={release.apkUrl} forced />;
-  if (fallbackMode || userFallbackMode) return <FallbackCalculator />;
+  if (userFallbackMode || fallbackMode) return <FallbackCalculator />;
 
   return (
     <SafeAreaView style={styles.safe}>
