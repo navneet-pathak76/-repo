@@ -105,6 +105,7 @@ export default function Home() {
     apkUrl: "",
     updateMessage: "",
   });
+  const [updatePromptShown, setUpdatePromptShown] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -266,6 +267,25 @@ export default function Home() {
   const rate = settings.rate || 115;
   const updateRequired = compareVersions(APP_VERSION, release.minimumVersion) < 0;
   const updateAvailable = compareVersions(APP_VERSION, release.latestVersion) < 0;
+
+  useEffect(() => {
+    if (!user || !updateAvailable || updatePromptShown || !release.apkUrl) return;
+    setUpdatePromptShown(true);
+    Alert.alert(
+      "Update available",
+      release.updateMessage || ("Version " + release.latestVersion + " is available."),
+      [
+        { text: "Later", style: "cancel" },
+        {
+          text: "Update",
+          onPress: async () => {
+            try { await Linking.openURL(release.apkUrl); }
+            catch { Alert.alert("Could not open update", "Please contact support for the latest APK."); }
+          },
+        },
+      ]
+    );
+  }, [user, updateAvailable, updatePromptShown, release]);
   const MIN_USDT = 50;
   const MIN_INR = MIN_USDT * rate;
 
@@ -377,7 +397,6 @@ export default function Home() {
   if (maintenanceMode) return <MaintenanceScreen />;
   if (updateRequired) return <UpdateScreen version={release.latestVersion} message={release.updateMessage} apkUrl={release.apkUrl} forced />;
   if (fallbackMode || userFallbackMode) return <FallbackCalculator />;
-  if (updateAvailable) return <UpdateScreen version={release.latestVersion} message={release.updateMessage} apkUrl={release.apkUrl} />;
 
   return (
     <SafeAreaView style={styles.safe}>
