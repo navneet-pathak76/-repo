@@ -1,1 +1,29 @@
-# RP Exchange Android App\n\nExpo React Native application matching the supplied mobile reference UI.\n\n## Current implementation\n- Reference-style Home dashboard\n- Balance, invite code and team/rebate UI\n- Buy RP / Sell RP screens\n- INR/USDT calculator with remotely configurable rate\n- Firebase Authentication login/signup\n- Firestore user profile creation\n- Firestore transaction-request records with pending status\n- Remote public settings: rate, payment address and QR URL\n- Mine/profile screen and sign-out\n- Admin configuration screen\n- Firestore rules for users, transactions and admin-only settings\n- Environment-variable based Firebase configuration\n- No private wallet keys or seed phrases in the mobile app\n\n## Setup\n1. Create a Firebase project.\n2. Enable Authentication → Email/Password.\n3. Create a Firestore database.\n4. Copy .env.example to .env and fill the Firebase web-app configuration.\n5. Run: npm install && npx expo start\n\n## Admin setup\nThe current Firestore rules use a Firebase Auth custom claim named admin. Set that claim only from a trusted server/Admin SDK environment; never put a Firebase service-account private key in the APK.\nThen sign in with that admin account and open the admin route during development.\n\n## Firestore collections\n- users/{uid} — basic authenticated user profile\n- appSettings/public — public rate/payment configuration\n- transactions/{id} — user-submitted request records\n\nThe transaction flow records a request for review. It does not send, receive, custody, or automatically settle USDT or other crypto assets.\n\n## Production checklist\nBefore public deployment, configure the applicable legal/compliance requirements for the jurisdiction and business model, validate Firestore rules with the Firebase emulator, add server-side admin tooling, error monitoring, privacy/terms pages, secure build signing, and a compliant payment/settlement provider if actual asset transfers are required.\n\n## Build\nFor an installable Android APK/AAB, configure an Expo/EAS project and signing credentials, then run the appropriate EAS Android build. Do not commit signing keys, Firebase service-account JSON, private wallet keys, or API secrets to this repository.
+# RP Exchange Simulation
+
+Expo React Native Android demo application for demonstrating an exchange-style interface without real-money or crypto settlement.
+
+## Simulation boundaries
+- All balances are simulated values.
+- Buy/sell activity creates simulated transaction records only.
+- No wallet, private-key, crypto custody, payment collection, or asset settlement is implemented.
+- No deposit-linked referral, team, or rebate payout system is included.
+- Maintenance Mode is a transparent user-facing state.
+- The calculator is a standalone utility and is not a hidden application mode.
+
+## Stack
+- Expo SDK 54
+- React Native 0.81
+- Firebase Authentication / Firestore / Functions
+- Expo Updates
+
+## Local setup
+1. Configure Firebase Authentication and Firestore.
+2. Configure the EXPO_PUBLIC_FIREBASE_* environment variables.
+3. Run npm install.
+4. Run npx expo start.
+
+## Security
+Do not commit service-account JSON, signing keys, private wallet keys, or API secrets. Admin operations are restricted to the configured admin UID and server-side Functions.
+
+## Build
+Use the repository Android workflow or an Expo/EAS Android build with appropriate signing credentials. A new native build is required when native dependencies or Expo runtime configuration changes.
