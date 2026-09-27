@@ -204,8 +204,26 @@ export default function Admin(){
        <Text style={s.userEmail}>{u.email||"No email"}</Text>
        <Text style={s.userUid}>{u.id}</Text>
        <Text style={s.modeText}>Current mode: {mode==="fallback"?"Calculator":"RP Exchange"}</Text>
+       <Text style={s.modeText}>Balance: {Number(u.balanceUsdt || 0).toFixed(2)} USDT</Text>
       </View>
       <View style={s.modeActions}>
+       <Pressable
+        disabled={busy===("sync-"+u.id)}
+        style={[s.modeButton,{backgroundColor:"#F1F4FF",borderColor:"#C9D4FF"}]}
+        onPress={async()=>{
+         if(!functions)return;
+         try{
+          setBusy("sync-"+u.id);
+          const rebuild=httpsCallable(functions,"rebuildUserBalance");
+          const result:any=await rebuild({userId:u.id});
+          Alert.alert("Balance synced","Balance recalculated from completed transactions: "+Number(result?.data?.balanceUsdt||0).toFixed(8)+" USDT.");
+         }catch(error:any){
+          Alert.alert("Sync failed",String(error?.message||"The server rejected the balance rebuild."));
+         }finally{setBusy("");}
+        }}
+       >
+        <Text style={[s.modeButtonText,{color:C.blue}]}>{busy===("sync-"+u.id)?"Syncing…":"Sync Balance"}</Text>
+       </Pressable>
        <Pressable
         disabled={busy===u.id}
         style={[s.modeButton,mode==="active"&&s.modeActive]}
