@@ -27,6 +27,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import * as Clipboard from "expo-clipboard";
+import * as Updates from "expo-updates";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { auth, db, isFirebaseConfigured } from "../lib/firebase";
@@ -110,7 +111,21 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
 
-    const checkServerMode = async () => {
+    const checkForProductionUpdate = async () => {
+      try {
+        if (!Updates.isEnabled) return;
+        const result = await Updates.checkForUpdateAsync();
+        if (cancelled || !result.isAvailable) return;
+        await Updates.fetchUpdateAsync();
+        if (!cancelled) await Updates.reloadAsync();
+      } catch {
+        // Keep the embedded/current update if the OTA service is unavailable.
+      }
+    };
+
+    checkForProductionUpdate();
+
+    const checkServerMode = async () => = async () => {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
