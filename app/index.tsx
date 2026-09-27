@@ -24,6 +24,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { auth, db, isFirebaseConfigured } from "../lib/firebase";
@@ -94,6 +95,7 @@ export default function Home() {
   const [submitting, setSubmitting] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [fallbackMode, setFallbackMode] = useState(false);
+  const [userFallbackMode, setUserFallbackMode] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,6 +141,21 @@ export default function Home() {
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    if (!db || !user) {
+      setUserFallbackMode(false);
+      return;
+    }
+
+    return onSnapshot(
+      doc(db, "appSettings", "userModes", user.uid),
+      (snapshot) => {
+        setUserFallbackMode(snapshot.exists() && snapshot.data().mode === "fallback");
+      },
+      () => setUserFallbackMode(false)
+    );
+  }, [user]);
 
   useEffect(() => {
     if (!db) return;
@@ -295,6 +312,18 @@ export default function Home() {
 
   const latestRequest = transactions[0];
 
+  const copyTransactionLink = async (link: string) => {
+    const value = link.trim();
+    if (!value) return;
+
+    try {
+      await Clipboard.setStringAsync(value);
+      Alert.alert("Copied", "Transaction link copied to clipboard.");
+    } catch {
+      Alert.alert("Copy failed", "The transaction link could not be copied.");
+    }
+  };
+
   const shareInvite = async () => {
     if (!inviteCode) return;
     try {
@@ -314,7 +343,7 @@ export default function Home() {
     );
   }
 
-  if (fallbackMode) return <FallbackCalculator />;
+  if (fallbackMode || userFallbackMode) return <FallbackCalculator />;
   if (maintenanceMode) return <MaintenanceScreen />;
   if (isFirebaseConfigured && !user) return <Login />;
   if (user?.uid === ADMIN_UID && ADMIN_UID) return <Admin />;
@@ -481,9 +510,9 @@ export default function Home() {
                       {latestRequest.paymentReference ? <Text style={styles.detailText}>Payment reference: {latestRequest.paymentReference}</Text> : null}
                       {latestRequest.adminNote ? <Text style={styles.detailText}>Admin note: {latestRequest.adminNote}</Text> : null}
                       {latestRequest.transactionLink ? (
-                        <Pressable style={styles.detailButton} onPress={() => Alert.alert("Transaction link", latestRequest.transactionLink || "")}>
-                          <Text style={styles.detailButtonText}>View transaction details</Text>
-                          <Ionicons name="open-outline" size={15} color="#fff" />
+                        <Pressable style={styles.detailButton} onPress={() => copyTransactionLink(latestRequest.transactionLink || "")}>
+                          <Text style={styles.detailButtonText}>Copy transaction link</Text>
+                          <Ionicons name="copy-outline" size={15} color="#fff" />
                         </Pressable>
                       ) : null}
                     </View>
@@ -584,8 +613,8 @@ export default function Home() {
                           <Text style={styles.txMeta}>TX: {tx.transactionId}</Text>
                         ) : null}
                         {tx.status !== "pending" && tx.transactionLink ? (
-                          <Pressable onPress={() => Alert.alert("Transaction link", tx.transactionLink || "")}>
-                            <Text style={styles.txLink}>View transaction details</Text>
+                          <Pressable onPress={() => copyTransactionLink(tx.transactionLink || "")}>
+                            <Text style={styles.txLink}>Copy transaction link</Text>
                           </Pressable>
                         ) : null}
                         {tx.adminNote ? <Text style={styles.txNote}>{tx.adminNote}</Text> : null}
