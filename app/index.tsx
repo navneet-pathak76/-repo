@@ -4,11 +4,8 @@ import {
   addDoc,
   collection,
   doc,
-  getDoc,
   onSnapshot,
   query,
-  serverTimestamp,
-  setDoc,
   where,
 } from "firebase/firestore";
 import {
@@ -17,7 +14,6 @@ import {
   Pressable,
   SafeAreaView,
   ScrollView,
-  Share,
   Linking,
   StyleSheet,
   Text,
@@ -28,26 +24,14 @@ import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import * as Clipboard from "expo-clipboard";
 import * as Updates from "expo-updates";
-import { LinearGradient } from "expo-linear-gradient";
 
 import { auth, db, isFirebaseConfigured } from "../lib/firebase";
 import Login from "./login";
 import Admin from "./admin";
-import FallbackCalculator from "./FallbackCalculator";
 
 const ADMIN_UID = "AInbtkxwW0UVMWdh12HCWNcDn1l2";
 
-const CONTROL_URL = "https://rp-exchange-test.seriesg210.workers.dev/status";
 const APP_VERSION = String(Constants.expoConfig?.version || "1.0.1");
-
-function generateInviteCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-  let code = "";
-  for (let i = 0; i < 8; i += 1) {
-    code += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return code;
-}
 
 const C = {
   bg: "#F7F8FB",
@@ -79,29 +63,22 @@ type Tx = {
 };
 
 const HOME_MENU: Array<[any, string]> = [
-  ["people-outline", "My Team"],
-  ["gift-outline", "Rebate Rewards"],
   ["document-text-outline", "Transaction History"],
   ["headset-outline", "Customer Support"],
+  ["information-circle-outline", "About Simulation"],
 ];
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("home");
   const [amount, setAmount] = useState("");
   const [user, setUser] = useState<User | null>(null);
-  const [settings, setSettings] = useState({ rate: 115, paymentAddress: "", qrUrl: "" });
+  const [settings, setSettings] = useState({ rate: 115 });
   const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [dataZeroed, setDataZeroed] = useState(false);
   const [transactions, setTransactions] = useState<Tx[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [paymentOpen, setPaymentOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [inviteCode, setInviteCode] = useState("");
   const [balanceUsdt, setBalanceUsdt] = useState(0);
-  const [fallbackMode, setFallbackMode] = useState(false);
-  const [userFallbackMode, setUserFallbackMode] = useState(false);
-  const [userModeLoaded, setUserModeLoaded] = useState(false);
   const [release, setRelease] = useState({
     latestVersion: APP_VERSION,
     minimumVersion: "1.0.0",
@@ -127,35 +104,6 @@ export default function Home() {
 
     checkForProductionUpdate();
 
-    const checkServerMode = async () => {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 5000);
-        const response = await fetch(CONTROL_URL, {
-          method: "GET",
-          headers: { Accept: "application/json" },
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-
-        if (!response.ok) return;
-
-        const data = await response.json();
-        if (!cancelled && (data?.mode === "active" || data?.mode === "fallback")) {
-          setFallbackMode(data.mode === "fallback");
-        }
-      } catch {
-        // Keep the current mode when the control server is unavailable.
-      }
-    };
-
-    checkServerMode();
-    const interval = setInterval(checkServerMode, 30000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
   }, []);
 
   useEffect(() => {
@@ -213,7 +161,6 @@ export default function Home() {
     if (!db) return;
     return onSnapshot(doc(db, "appSettings", "runtime"), (snapshot) => {
       setMaintenanceMode(snapshot.exists() && snapshot.data().maintenanceMode === true);
-      setDataZeroed(snapshot.exists() && snapshot.data().dataZeroed === true);
     });
   }, []);
 
@@ -222,11 +169,7 @@ export default function Home() {
     return onSnapshot(doc(db, "appSettings", "public"), (snapshot) => {
       if (!snapshot.exists()) return;
       const data = snapshot.data();
-      setSettings({
-        rate: Number(data.rate) || 115,
-        paymentAddress: String(data.paymentAddress || ""),
-        qrUrl: String(data.qrUrl || ""),
-      });
+      setSettings({ rate: Number(data.rate) || 115 });
     });
   }, []);
 
@@ -271,38 +214,7 @@ export default function Home() {
     });
   }, [user]);
 
-  useEffect(() => {
-    if (!user || !db) return;
 
-    const ensureInviteCode = async () => {
-      try {
-        const userRef = doc(db, "users", user.uid);
-        const snapshot = await getDoc(userRef);
-        const existingCode = String(snapshot.data()?.inviteCode || "").trim();
-
-        if (existingCode) {
-          setInviteCode(existingCode);
-          return;
-        }
-
-        const newCode = generateInviteCode();
-        await setDoc(
-          userRef,
-          {
-            email: user.email || "",
-            inviteCode: newCode,
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
-        setInviteCode(newCode);
-      } catch {
-        // Keep the UI usable if the profile document is temporarily unavailable.
-      }
-    };
-
-    ensureInviteCode();
-  }, [user]);
 
   const rate = settings.rate || 115;
   const updateRequired = compareVersions(APP_VERSION, release.minimumVersion) < 0;
@@ -377,10 +289,11 @@ export default function Home() {
         usdtAmount: type === "buy" ? parsed / rate : parsed,
         inrAmount: type === "buy" ? parsed : parsed * rate,
         status: "pending",
-        createdAt: serverTimestamp(),
+        simulated: true,
+        createdAt: new Date().toISOString(),
       });
       setAmount("");
-      Alert.alert("Request submitted", "Your request is now pending admin review.");
+      Alert.alert("Simulation submitted", "This simulated transaction is now pending admin review.");
     } catch (error: any) {
       const code = String(error?.code || "");
       if (code.includes("permission-denied")) {
@@ -413,16 +326,7 @@ export default function Home() {
     }
   };
 
-  const shareInvite = async () => {
-    if (!inviteCode) return;
-    try {
-      await Share.share({
-        message: "Join RP Exchange using my invite code: " + inviteCode,
-      });
-    } catch {
-      // User cancelled sharing.
-    }
-  };
+
 
   if (loading) {
     return (
@@ -435,9 +339,7 @@ export default function Home() {
   if (isFirebaseConfigured && !user) return <Login />;
   if (user?.uid === ADMIN_UID && ADMIN_UID) return <Admin />;
   if (maintenanceMode) return <MaintenanceScreen />;
-  if (user && !userModeLoaded) return <LoadingScreen />;
   if (updateRequired) return <UpdateScreen version={release.latestVersion} message={release.updateMessage} apkUrl={release.apkUrl} forced />;
-  if (userFallbackMode || fallbackMode) return <FallbackCalculator />;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -451,16 +353,7 @@ export default function Home() {
               <Text style={styles.avatarText}>RP</Text>
             </View>
 
-            <View style={styles.invite}>
-              <Text style={styles.inviteLabel}>Invite</Text>
-              <Text style={styles.inviteCode}>{inviteCode || "Generating…"}</Text>
-              <Pressable
-                hitSlop={10}
-                onPress={() => Alert.alert("Invite code", inviteCode || "Generating…")}
-              >
-                <Ionicons name="copy-outline" size={20} color={C.muted} />
-              </Pressable>
-            </View>
+            <View style={styles.simulationBadge}><Text style={styles.simulationBadgeText}>SIMULATION MODE</Text></View>
 
             <Pressable hitSlop={10} onPress={() => Alert.alert("Notifications", "No new notifications.")}>
               <Ionicons name="notifications-outline" size={25} color={C.text} />
@@ -470,32 +363,15 @@ export default function Home() {
           {tab === "home" && (
             <View>
               <View style={styles.balanceCard}>
-                <Text style={styles.label}>Current Balance</Text>
+                <Text style={styles.label}>Simulated Balance</Text>
                 <View style={styles.balanceRow}>
-                  <Text style={styles.balance}>{dataZeroed ? "0.00" : balanceUsdt.toFixed(2)}</Text>
+                  <Text style={styles.balance}>{balanceUsdt.toFixed(2)}</Text>
                   <Ionicons name="chevron-forward" size={22} color={C.muted} />
                 </View>
                 <Text style={styles.balanceUnit}>USDT</Text>
               </View>
 
-              <LinearGradient
-                colors={["#EEF1FF", "#E7ECFF"]}
-                style={styles.teamBanner}
-              >
-                <View style={styles.teamContent}>
-                  <Text style={styles.teamSmall}>MY TEAM</Text>
-                  <Text style={styles.teamTitle}>3-LEVEL</Text>
-                  <Text style={styles.teamSubtitle}>rebate mechanism</Text>
-                  <Pressable
-                    style={styles.blueButton}
-                    onPress={() => showAction("My team")}
-                  >
-                    <Text style={styles.blueButtonText}>View earnings</Text>
-                    <Ionicons name="arrow-forward" size={14} color="#fff" />
-                  </Pressable>
-                </View>
-                <Ionicons name="people" size={58} color={C.blue} />
-              </LinearGradient>
+              <View style={styles.simulationBanner}><Text style={styles.simulationBannerTitle}>SIMULATED TRANSACTIONS</Text><Text style={styles.simulationBannerText}>All balances and buy/sell activity are for demonstration only. No real money or crypto is transferred or held.</Text></View>
 
               <View style={styles.menuCard}>
                 {HOME_MENU.map(([icon, title]) => (
@@ -517,7 +393,7 @@ export default function Home() {
             <View style={styles.exchangeCard}>
               <View style={styles.exchangeHeader}>
                 <View>
-                  <Text style={styles.pageTitle}>{tab === "buy" ? "Buy RP" : "Sell RP"}</Text>
+                  <Text style={styles.pageTitle}>{tab === "buy" ? "Simulate Buy" : "Simulate Sell"}</Text>
                   <Text style={styles.rate}>1 USDT = ₹{rate}</Text>
                 </View>
                 <View style={styles.exchangeIcon}>
@@ -551,7 +427,7 @@ export default function Home() {
               ) : (
                 <View style={styles.quote}>
                   <Text style={styles.quoteLabel}>WITHDRAWAL</Text>
-                  <Text style={styles.quoteValue}>Request INR withdrawal</Text>
+                  <Text style={styles.quoteValue}>Simulate INR withdrawal</Text>
                   <Text style={styles.minimumHint}>Minimum withdrawal: 50 USDT</Text>
                 </View>
               )}
@@ -565,13 +441,13 @@ export default function Home() {
                   {submitting
                     ? "Submitting…"
                     : tab === "buy"
-                      ? "Submit Buy Request"
+                      ? "Submit Simulated Buy"
                       : "Request INR Withdrawal"}
                 </Text>
               </Pressable>
 
               <Text style={styles.helper}>
-                Requests are reviewed by admin. No crypto is transferred or held by this app.
+                Simulation only. No real money or crypto is transferred, held, or settled by this app.
               </Text>
 
               {latestRequest && latestRequest.type === tab ? (
@@ -853,6 +729,11 @@ function TabButton({
 }
 
 const styles = StyleSheet.create({
+  simulationBadge: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: "#EEF2FF" },
+  simulationBadgeText: { fontSize: 10, fontWeight: "900", color: C.blue, letterSpacing: 0.8 },
+  simulationBanner: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: C.border, borderRadius: 16, padding: 16, marginBottom: 14 },
+  simulationBannerTitle: { fontSize: 12, fontWeight: "900", color: C.blue, letterSpacing: 0.8, marginBottom: 6 },
+  simulationBannerText: { fontSize: 12, lineHeight: 18, color: C.muted },
   safe: { flex: 1, backgroundColor: C.bg },
   maintenanceSafe: { flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center", padding: 24 },
   maintenanceCard: { width: "100%", maxWidth: 420, backgroundColor: C.card, borderRadius: 24, padding: 28, alignItems: "center", borderWidth: 1, borderColor: C.border },
