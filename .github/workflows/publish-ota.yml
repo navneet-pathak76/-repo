@@ -1,0 +1,47 @@
+name: Publish OTA Update
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-ota
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish latest main to production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check Expo token
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "::error::EXPO_TOKEN repository secret is not configured."
+            exit 1
+          fi
+
+      - name: Checkout latest main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish production OTA
+        run: eas update --channel production --platform android --message "Admin published latest main update" --non-interactive
