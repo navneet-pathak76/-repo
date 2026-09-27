@@ -23,7 +23,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /appSettings/userModes/{userId} {
+    match /userModes/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
       allow write: if isAdmin();
     }
