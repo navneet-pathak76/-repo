@@ -704,6 +704,7 @@ function compareVersions(a:string,b:string){
 }
 
 function UpdateScreen({version,message,apkUrl,forced}:{version:string;message:string;apkUrl:string;forced?:boolean}){
+  const [dismissed,setDismissed]=useState(false);
   const openUpdate=async()=>{
     if(!apkUrl.trim()){
       Alert.alert("Update unavailable","The admin has not published an update URL yet.");
@@ -712,6 +713,8 @@ function UpdateScreen({version,message,apkUrl,forced}:{version:string;message:st
     try{await Linking.openURL(apkUrl.trim());}
     catch{Alert.alert("Could not open update","Please contact support for the latest APK.");}
   };
+  if(!forced && dismissed) return null;
+
   return <SafeAreaView style={styles.maintenanceSafe}>
     <View style={styles.maintenanceCard}>
       <View style={styles.maintenanceIcon}><Ionicons name="cloud-download-outline" size={30} color={C.blue}/></View>
@@ -721,7 +724,7 @@ function UpdateScreen({version,message,apkUrl,forced}:{version:string;message:st
       <Pressable style={[styles.primary,{marginTop:18,width:"100%"}]} onPress={openUpdate}>
         <Text style={styles.primaryText}>Update App</Text>
       </Pressable>
-      {!forced?<Pressable style={{marginTop:12}} onPress={()=>{}}>
+      {!forced?<Pressable style={{marginTop:12}} onPress={()=>setDismissed(true)}>
         <Text style={styles.maintenanceText}>Continue with current version</Text>
       </Pressable>:null}
     </View>
