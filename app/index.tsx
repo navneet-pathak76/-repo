@@ -117,28 +117,7 @@ export default function Home() {
     });
   }, []);
 
-  useEffect(() => {
-    if (!db || !user) {
-      setUserFallbackMode(false);
-      setUserModeLoaded(false);
-      return;
-    }
 
-    setUserModeLoaded(false);
-    return onSnapshot(
-      doc(db, "appSettings", "userModes"),
-      (snapshot) => {
-        const modes = snapshot.exists() ? snapshot.data().modes : null;
-        const mode = modes && typeof modes === "object" ? modes[user.uid] : "active";
-        setUserFallbackMode(mode === "fallback");
-        setUserModeLoaded(true);
-      },
-      () => {
-        setUserFallbackMode(false);
-        setUserModeLoaded(true);
-      }
-    );
-  }, [user]);
 
   useEffect(() => {
     if (!db || !user) return;
@@ -498,10 +477,6 @@ export default function Home() {
               <Text style={styles.profileName} numberOfLines={1}>
                 {user?.email || "Demo User"}
               </Text>
-              <View style={styles.profileInvite}>
-                <Text style={styles.profileMuted}>Invite code</Text>
-                <Text style={styles.profileCode}>{inviteCode || "Generating…"}</Text>
-              </View>
 
               <View style={styles.profileMenu}>
                 <MenuRow
@@ -509,16 +484,8 @@ export default function Home() {
                   title="Transaction history"
                   onPress={() => setHistoryOpen(true)}
                 />
-                <MenuRow
-                  icon="wallet-outline"
-                  title="Payment methods"
-                  onPress={() => setPaymentOpen(true)}
-                />
-                <MenuRow
-                  icon="share-social-outline"
-                  title="Share invitation"
-                  onPress={shareInvite}
-                />
+>
+>
               </View>
             </View>
           )}
@@ -526,8 +493,8 @@ export default function Home() {
 
         <View style={styles.nav}>
           <TabButton icon="home-outline" label="Home" active={tab === "home"} onPress={() => setTab("home")} />
-          <TabButton icon="swap-horizontal-outline" label="Buy RP" active={tab === "buy"} onPress={() => setTab("buy")} />
-          <TabButton icon="cash-outline" label="Sell RP" active={tab === "sell"} onPress={() => setTab("sell")} />
+          <TabButton icon="swap-horizontal-outline" label="Simulate Buy" active={tab === "buy"} onPress={() => setTab("buy")} />
+          <TabButton icon="cash-outline" label="Simulate Sell" active={tab === "sell"} onPress={() => setTab("sell")} />
           <TabButton icon="person-outline" label="Mine" active={tab === "mine"} onPress={() => setTab("mine")} />
         </View>
 
@@ -597,35 +564,7 @@ export default function Home() {
           </View>
         </Modal>
 
-        <Modal
-          visible={paymentOpen}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setPaymentOpen(false)}
-        >
-          <View style={styles.modalBackdrop}>
-            <View style={styles.sheetSmall}>
-              <View style={styles.sheetHandle} />
-              <View style={styles.sheetHeader}>
-                <Text style={styles.sheetTitle}>Payment methods</Text>
-                <Pressable onPress={() => setPaymentOpen(false)} hitSlop={10}>
-                  <Ionicons name="close" size={24} color={C.text} />
-                </Pressable>
-              </View>
-              <View style={styles.paymentBox}>
-                <Ionicons name="wallet-outline" size={28} color={C.blue} />
-                <Text style={styles.paymentTitle}>USDT payment address</Text>
-                <Text style={styles.paymentValue}>
-                  {settings.paymentAddress || "Not configured by admin"}
-                </Text>
-              </View>
-              <Text style={styles.paymentHint}>
-                Payment details are controlled by the admin account.
-              </Text>
-            </View>
-          </View>
-        </Modal>
-      </View>
+    </View>
     </SafeAreaView>
   );
 }
