@@ -120,14 +120,35 @@ export default function Admin(){
     Alert.alert("Add transaction details","Enter at least a Transaction ID, Payment Link, or Payment Reference before approving.");
     return;
   }
-  try{setBusy(id);await updateDoc(doc(db,"transactions",id),{...data,status,updatedAt:new Date().toISOString(),processedAt:status==="rejected"?null:new Date().toISOString()});}
-  catch{Alert.alert("Update failed","Firebase rejected the transaction update.");}
-  finally{setBusy("");}
+  try{
+   setBusy(id);
+   if(status==="completed"){
+    if(!functions){
+     Alert.alert("Complete failed","The server function is not configured.");
+     return;
+    }
+    const complete=httpsCallable(functions,"completeTransaction");
+    const result:any=await complete({transactionId:id,details:data});
+    Alert.alert(
+     "Transaction completed",
+     "The user's balance is now "+Number(result?.data?.balanceUsdt||0).toFixed(8)+" USDT."
+    );
+   }else{
+    await updateDoc(doc(db,"transactions",id),{
+     ...data,
+     status,
+     updatedAt:new Date().toISOString(),
+     processedAt:status==="rejected"?null:new Date().toISOString()
+    });
+   }
+  }catch(error:any){
+   Alert.alert("Update failed",String(error?.message||"The server rejected the transaction update."));
+  }finally{setBusy("");}
  };
 
  return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.wrap}>
   <Text style={s.title}>Admin Panel</Text>
-  <Text style={s.sub}>Manage users, requests and transaction details</Text>
+  <Text style={s.sub}>Manage users, requests, balances and transaction details</Text>
   <View style={s.stats}>
    <View style={s.stat}><Text style={s.statNum}>{users.length}</Text><Text style={s.statLabel}>Users</Text></View>
    <View style={s.stat}><Text style={s.statNum}>{transactions.filter(x=>x.status==="pending").length}</Text><Text style={s.statLabel}>Pending</Text></View>
@@ -216,7 +237,7 @@ function TxCard({tx,busy,onSave}:{tx:any;busy:boolean;onSave:(id:string,status:a
  return <View style={s.card}>
   <View style={s.top}><Text style={s.type}>{String(tx.type||"").toUpperCase()} RP</Text><Text style={s.status}>{tx.status}</Text></View>
   <Text style={s.amount}>{tx.type==="sell"?String(tx.usdtAmount||tx.amount)+" USDT → ₹"+Number(tx.inrAmount||((tx.amount||0)*(tx.rate||110))).toFixed(2):"₹"+Number(tx.inrAmount||tx.amount||0).toFixed(2)+" → "+Number(tx.usdtAmount||0).toFixed(2)+" USDT"}</Text>
-  <Text style={s.meta}>User: {tx.userId}</Text>
+  <Text style={s.meta}>User: {tx.userId}</Text>\n  {tx.balanceAfter !== undefined ? <Text style={s.meta}>Balance after: {Number(tx.balanceAfter).toFixed(8)} USDT</Text> : null}
   <Text style={s.meta}>Rate: ₹{tx.rate||110}</Text>
   <Field label="Transaction ID" value={tid} onChangeText={setTid}/>
   <Field label="Transaction / Payment Link" value={link} onChangeText={setLink}/>
