@@ -232,23 +232,8 @@ export default function Home() {
 
   useEffect(() => {
     if (!user || !db) {
-      setBalanceUsdt(0);
-      return;
-    }
-
-    return onSnapshot(
-      doc(db, "users", user.uid),
-      (snapshot) => {
-        const balance = Number(snapshot.data()?.balanceUsdt || 0);
-        setBalanceUsdt(Number.isFinite(balance) && balance >= 0 ? balance : 0);
-      },
-      () => setBalanceUsdt(0)
-    );
-  }, [user]);
-
-  useEffect(() => {
-    if (!user || !db) {
       setTransactions([]);
+      setBalanceUsdt(0);
       return;
     }
 
@@ -262,12 +247,30 @@ export default function Home() {
         id: item.id,
         ...(item.data() as Omit<Tx, "id">),
       }));
+
       rows.sort((a, b) => {
         const ad = a.createdAt?.toDate?.()?.getTime() || 0;
         const bd = b.createdAt?.toDate?.()?.getTime() || 0;
         return bd - ad;
       });
+
       setTransactions(rows);
+
+      // Wallet balance is derived only from completed transactions.
+      // Pending/approved/rejected requests never affect the balance.
+      let balance = 0;
+      rows.forEach((tx) => {
+        if (tx.status !== "completed") return;
+        const usdt = Number(tx.usdtAmount || 0);
+        if (!Number.isFinite(usdt)) return;
+        if (tx.type === "buy") balance += usdt;
+        if (tx.type === "sell") balance -= usdt;
+      });
+
+      setBalanceUsdt(Math.max(0, Number(balance.toFixed(8))));
+    }, () => {
+      setTransactions([]);
+      setBalanceUsdt(0);
     });
   }, [user]);
 
