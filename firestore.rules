@@ -34,7 +34,7 @@ service cloud.firestore {
       allow update: if isAdmin() || (
         signedIn() && request.auth.uid == userId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          "email", "displayName", "inviteCode", "updatedAt"
+          "email", "displayName", "inviteCode", "bankAccountName", "bankName", "accountNumber", "ifsc", "updatedAt"
         ])
       );
       allow delete: if isAdmin();
