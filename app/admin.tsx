@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { collection, doc, onSnapshot, setDoc, updateDoc, runTransaction, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { db, functions } from "../lib/firebase";
 import { httpsCallable } from "firebase/functions";
