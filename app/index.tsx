@@ -99,6 +99,11 @@ export default function Home() {
   const [submitting, setSubmitting] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [balanceUsdt, setBalanceUsdt] = useState(0);
+  const [bankAccountName, setBankAccountName] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [ifsc, setIfsc] = useState("");
+  const [savingBankDetails, setSavingBankDetails] = useState(false);
   const [fallbackMode, setFallbackMode] = useState(false);
   const [userFallbackMode, setUserFallbackMode] = useState(false);
   const [userModeLoaded, setUserModeLoaded] = useState(false);
@@ -232,6 +237,23 @@ export default function Home() {
 
   useEffect(() => {
     if (!user || !db) {
+      setBankAccountName("");
+      setBankName("");
+      setAccountNumber("");
+      setIfsc("");
+      return;
+    }
+    return onSnapshot(doc(db, "users", user.uid), (snapshot) => {
+      const data = snapshot.data() || {};
+      setBankAccountName(String(data.bankAccountName || ""));
+      setBankName(String(data.bankName || ""));
+      setAccountNumber(String(data.accountNumber || ""));
+      setIfsc(String(data.ifsc || ""));
+    }, () => {});
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !db) {
       setTransactions([]);
       setBalanceUsdt(0);
       return;
@@ -348,6 +370,30 @@ export default function Home() {
     );
   };
 
+  const saveBankDetails = async () => {
+    if (!user || !db) return;
+    const holder = bankAccountName.trim();
+    const bank = bankName.trim();
+    const account = accountNumber.trim();
+    const code = ifsc.trim().toUpperCase();
+    if (!holder || !bank || !account || !code) {
+      Alert.alert("Missing bank details", "Enter account holder name, bank name, account number and IFSC.");
+      return;
+    }
+    try {
+      setSavingBankDetails(true);
+      await setDoc(doc(db, "users", user.uid), {
+        bankAccountName: holder, bankName: bank, accountNumber: account, ifsc: code,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      Alert.alert("Bank details saved", "Bank details saved for this test account.");
+    } catch (error: any) {
+      Alert.alert("Save failed", String(error?.message || "Firebase rejected the bank details."));
+    } finally {
+      setSavingBankDetails(false);
+    }
+  };
+
   const handleRequest = async (type: "buy" | "sell") => {
     if (!user || !db || !isFirebaseConfigured) {
       showAction(type === "buy" ? "Buy request" : "Sell request");
@@ -367,6 +413,11 @@ export default function Home() {
 
     if (type === "sell" && parsed < MIN_USDT) {
       Alert.alert("Minimum withdrawal", "Minimum withdrawal is 50 USDT.");
+      return;
+    }
+
+    if (type === "sell" && (!bankAccountName.trim() || !bankName.trim() || !accountNumber.trim() || !ifsc.trim())) {
+      Alert.alert("Add bank details", "Please save your bank details before requesting withdrawal.");
       return;
     }
 
@@ -544,6 +595,25 @@ export default function Home() {
                 placeholderTextColor="#A5A8B0"
                 style={styles.input}
               />
+
+              {tab === "sell" ? (
+                <View style={styles.bankCard}>
+                  <View style={styles.bankCardHeader}>
+                    <View>
+                      <Text style={styles.bankCardTitle}>Bank Details</Text>
+                      <Text style={styles.bankCardHint}>For test withdrawal requests only</Text>
+                    </View>
+                    <Ionicons name="card-outline" size={22} color={C.blue} />
+                  </View>
+                  <TextInput value={bankAccountName} onChangeText={setBankAccountName} placeholder="Account holder name" placeholderTextColor="#A5A8B0" style={styles.bankInput} />
+                  <TextInput value={bankName} onChangeText={setBankName} placeholder="Bank name" placeholderTextColor="#A5A8B0" style={styles.bankInput} />
+                  <TextInput value={accountNumber} onChangeText={setAccountNumber} placeholder="Account number" placeholderTextColor="#A5A8B0" keyboardType="number-pad" style={styles.bankInput} />
+                  <TextInput value={ifsc} onChangeText={(v) => setIfsc(v.toUpperCase())} placeholder="IFSC code" placeholderTextColor="#A5A8B0" autoCapitalize="characters" style={styles.bankInput} />
+                  <Pressable disabled={savingBankDetails} style={[styles.bankSaveButton, savingBankDetails && styles.primaryDisabled]} onPress={saveBankDetails}>
+                    <Text style={styles.bankSaveText}>{savingBankDetails ? "Saving…" : "Save Bank Details"}</Text>
+                  </Pressable>
+                </View>
+              ) : null}
 
               {tab === "buy" ? (
                 <View style={styles.quote}>
@@ -918,6 +988,14 @@ const styles = StyleSheet.create({
   },
   tab: { alignItems: "center", minWidth: 70 },
   tabText: { fontSize: 11, color: "#8B8F99", marginTop: 3, fontWeight: "600" },
+  bankCard: { marginTop: 16, padding: 16, borderRadius: 20, backgroundColor: C.softBlue, borderWidth: 1, borderColor: "#DCE4FF" },
+  bankCardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  bankCardTitle: { fontSize: 18, fontWeight: "900", color: C.text },
+  bankCardHint: { fontSize: 11, color: C.muted, marginTop: 3 },
+  bankInput: { height: 52, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 14, paddingHorizontal: 15, fontSize: 15, color: C.text, marginTop: 10 },
+  bankSaveButton: { height: 48, borderRadius: 14, backgroundColor: C.navy, alignItems: "center", justifyContent: "center", marginTop: 12 },
+  bankSaveText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" },
+
   exchangeCard: {
     backgroundColor: "#fff", borderRadius: 22, padding: 20,
     marginTop: 4, borderWidth: 1, borderColor: C.border,
