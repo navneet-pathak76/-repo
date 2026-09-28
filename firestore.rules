@@ -31,10 +31,12 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isAdmin());
       allow create: if signedIn() && request.auth.uid == userId;
-      allow update: if signedIn() && request.auth.uid == userId
+      allow update: if isAdmin() || (
+        signedIn() && request.auth.uid == userId
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           "email", "displayName", "inviteCode", "updatedAt"
-        ]);
+        ])
+      );
       allow delete: if isAdmin();
     }
 
