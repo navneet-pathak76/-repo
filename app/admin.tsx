@@ -47,7 +47,7 @@ export default function Admin(){
    setUserModes(next);
   });
 
-  return()=>{a();b();c();d();e();f();};
+  return()=>{a();b();c();d();e();};
  },[]);
 
  const saveSettings=async()=>{
@@ -239,21 +239,19 @@ export default function Admin(){
          if(!db)return;
          try{
           setBusy("sync-"+u.id);
-          const result = await runTransaction(db, async (transaction) => {
-           const userRef=doc(db,"users",u.id);
-           const userSnap=await transaction.get(userRef);
-           const txSnap=await getDocs(query(collection(db,"transactions"),where("userId","==",u.id),where("status","==","completed")));
-           let balance=0;
-           txSnap.forEach(item=>{
-            const tx:any=item.data();
-            const amount=Number(tx.usdtAmount||0);
-            if(tx.type==="buy") balance+=amount;
-            if(tx.type==="sell") balance-=amount;
-           });
-           balance=Number(balance.toFixed(8));
-           transaction.set(userRef,{balanceUsdt:balance,updatedAt:new Date().toISOString()},{merge:true});
-           return balance;
+          const txSnap=await getDocs(query(collection(db,"transactions"),where("userId","==",u.id),where("status","==","completed")));
+          let balance=0;
+          txSnap.forEach(item=>{
+           const tx:any=item.data();
+           const amount=Number(tx.usdtAmount||0);
+           if(tx.type==="buy") balance+=amount;
+           if(tx.type==="sell") balance-=amount;
           });
+          balance=Number(balance.toFixed(8));
+          await runTransaction(db, async (transaction) => {
+           transaction.set(doc(db,"users",u.id),{balanceUsdt:balance,updatedAt:new Date().toISOString()},{merge:true});
+          });
+          const result=balance;
           Alert.alert("Balance synced","Balance recalculated from completed transactions: "+Number(result).toFixed(8)+" USDT.");
          }catch(error:any){
           Alert.alert("Sync failed",String(error?.message||"The server rejected the balance rebuild."));
