@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { collection, doc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, onSnapshot, setDoc, updateDoc, runTransaction, getDocs, query, where } from "firebase/firestore";
 import { Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { db, functions } from "../lib/firebase";
 import { httpsCallable } from "firebase/functions";
@@ -126,16 +126,38 @@ export default function Admin(){
   try{
    setBusy(id);
    if(status==="completed"){
-    if(!functions){
-     Alert.alert("Complete failed","The server function is not configured.");
-     return;
-    }
-    const complete=httpsCallable(functions,"completeTransaction");
-    const result:any=await complete({transactionId:id,details:data});
-    Alert.alert(
-     "Transaction completed",
-     "The user's balance is now "+Number(result?.data?.balanceUsdt||0).toFixed(8)+" USDT."
-    );
+    const result = await runTransaction(db, async (transaction) => {
+     const txRef = doc(db, "transactions", id);
+     const txSnap = await transaction.get(txRef);
+     if (!txSnap.exists()) throw new Error("Transaction not found.");
+     const tx:any = txSnap.data();
+     if (tx.balanceApplied === true && tx.status === "completed") {
+      const userSnap = await transaction.get(doc(db, "users", tx.userId));
+      return Number(userSnap.data()?.balanceUsdt || 0);
+     }
+     if (tx.status !== "approved") throw new Error("Only an approved transaction can be completed.");
+     const userRef = doc(db, "users", tx.userId);
+     const userSnap = await transaction.get(userRef);
+     const current = Number(userSnap.data()?.balanceUsdt || 0);
+     const usdt = Number(tx.usdtAmount || 0);
+     if (!Number.isFinite(usdt) || usdt <= 0) throw new Error("Invalid USDT amount.");
+     const next = tx.type === "buy" ? current + usdt : current - usdt;
+     if (tx.type === "sell" && next < 0) throw new Error("User does not have enough USDT balance.");
+     const rounded = Number(next.toFixed(8));
+     transaction.set(userRef,{balanceUsdt:rounded,updatedAt:new Date().toISOString()},{merge:true});
+     transaction.update(txRef,{
+      ...data,
+      status:"completed",
+      balanceApplied:true,
+      balanceBefore:Number(current.toFixed(8)),
+      balanceChange:Number((tx.type==="buy"?usdt:-usdt).toFixed(8)),
+      balanceAfter:rounded,
+      updatedAt:new Date().toISOString(),
+      processedAt:new Date().toISOString()
+     });
+     return rounded;
+    });
+    Alert.alert("Transaction completed","The user's balance is now "+Number(result).toFixed(8)+" USDT.");
    }else{
     await updateDoc(doc(db,"transactions",id),{
      ...data,
@@ -214,12 +236,25 @@ export default function Admin(){
         disabled={busy===("sync-"+u.id)}
         style={[s.modeButton,{backgroundColor:"#F1F4FF",borderColor:"#C9D4FF"}]}
         onPress={async()=>{
-         if(!functions)return;
+         if(!db)return;
          try{
           setBusy("sync-"+u.id);
-          const rebuild=httpsCallable(functions,"rebuildUserBalance");
-          const result:any=await rebuild({userId:u.id});
-          Alert.alert("Balance synced","Balance recalculated from completed transactions: "+Number(result?.data?.balanceUsdt||0).toFixed(8)+" USDT.");
+          const result = await runTransaction(db, async (transaction) => {
+           const userRef=doc(db,"users",u.id);
+           const userSnap=await transaction.get(userRef);
+           const txSnap=await getDocs(query(collection(db,"transactions"),where("userId","==",u.id),where("status","==","completed")));
+           let balance=0;
+           txSnap.forEach(item=>{
+            const tx:any=item.data();
+            const amount=Number(tx.usdtAmount||0);
+            if(tx.type==="buy") balance+=amount;
+            if(tx.type==="sell") balance-=amount;
+           });
+           balance=Number(balance.toFixed(8));
+           transaction.set(userRef,{balanceUsdt:balance,updatedAt:new Date().toISOString()},{merge:true});
+           return balance;
+          });
+          Alert.alert("Balance synced","Balance recalculated from completed transactions: "+Number(result).toFixed(8)+" USDT.");
          }catch(error:any){
           Alert.alert("Sync failed",String(error?.message||"The server rejected the balance rebuild."));
          }finally{setBusy("");}
