@@ -126,38 +126,13 @@ export default function Admin(){
   try{
    setBusy(id);
    if(status==="completed"){
-    const result = await runTransaction(db, async (transaction) => {
-     const txRef = doc(db, "transactions", id);
-     const txSnap = await transaction.get(txRef);
-     if (!txSnap.exists()) throw new Error("Transaction not found.");
-     const tx:any = txSnap.data();
-     if (tx.balanceApplied === true && tx.status === "completed") {
-      const userSnap = await transaction.get(doc(db, "users", tx.userId));
-      return Number(userSnap.data()?.balanceUsdt || 0);
-     }
-     if (tx.status !== "approved") throw new Error("Only an approved transaction can be completed.");
-     const userRef = doc(db, "users", tx.userId);
-     const userSnap = await transaction.get(userRef);
-     const current = Number(userSnap.data()?.balanceUsdt || 0);
-     const usdt = Number(tx.usdtAmount || 0);
-     if (!Number.isFinite(usdt) || usdt <= 0) throw new Error("Invalid USDT amount.");
-     const next = tx.type === "buy" ? current + usdt : current - usdt;
-     if (tx.type === "sell" && next < 0) throw new Error("User does not have enough USDT balance.");
-     const rounded = Number(next.toFixed(8));
-     transaction.set(userRef,{balanceUsdt:rounded,updatedAt:new Date().toISOString()},{merge:true});
-     transaction.update(txRef,{
-      ...data,
-      status:"completed",
-      balanceApplied:true,
-      balanceBefore:Number(current.toFixed(8)),
-      balanceChange:Number((tx.type==="buy"?usdt:-usdt).toFixed(8)),
-      balanceAfter:rounded,
-      updatedAt:new Date().toISOString(),
-      processedAt:new Date().toISOString()
-     });
-     return rounded;
+    await updateDoc(doc(db,"transactions",id),{
+     ...data,
+     status:"completed",
+     updatedAt:new Date().toISOString(),
+     processedAt:new Date().toISOString()
     });
-    Alert.alert("Transaction completed","The user's balance is now "+Number(result).toFixed(8)+" USDT.");
+    Alert.alert("Transaction completed","The user's USDT balance has been updated from this completed transaction.");
    }else{
     await updateDoc(doc(db,"transactions",id),{
      ...data,
@@ -229,37 +204,9 @@ export default function Admin(){
        <Text style={s.userEmail}>{u.email||"No email"}</Text>
        <Text style={s.userUid}>{u.id}</Text>
        <Text style={s.modeText}>Current mode: {mode==="fallback"?"Calculator":"RP Exchange"}</Text>
-       <Text style={s.modeText}>Balance: {Number(u.balanceUsdt || 0).toFixed(2)} USDT</Text>
+       <Text style={s.modeText}>Balance: {transactions.filter(tx=>tx.userId===u.id&&tx.status==="completed").reduce((sum,tx)=>sum+(tx.type==="buy"?Number(tx.usdtAmount||0):-Number(tx.usdtAmount||0)),0).toFixed(2)} USDT</Text>
       </View>
       <View style={s.modeActions}>
-       <Pressable
-        disabled={busy===("sync-"+u.id)}
-        style={[s.modeButton,{backgroundColor:"#F1F4FF",borderColor:"#C9D4FF"}]}
-        onPress={async()=>{
-         if(!db)return;
-         try{
-          setBusy("sync-"+u.id);
-          const txSnap=await getDocs(query(collection(db,"transactions"),where("userId","==",u.id),where("status","==","completed")));
-          let balance=0;
-          txSnap.forEach(item=>{
-           const tx:any=item.data();
-           const amount=Number(tx.usdtAmount||0);
-           if(tx.type==="buy") balance+=amount;
-           if(tx.type==="sell") balance-=amount;
-          });
-          balance=Number(balance.toFixed(8));
-          await runTransaction(db, async (transaction) => {
-           transaction.set(doc(db,"users",u.id),{balanceUsdt:balance,updatedAt:new Date().toISOString()},{merge:true});
-          });
-          const result=balance;
-          Alert.alert("Balance synced","Balance recalculated from completed transactions: "+Number(result).toFixed(8)+" USDT.");
-         }catch(error:any){
-          Alert.alert("Sync failed",String(error?.message||"The server rejected the balance rebuild."));
-         }finally{setBusy("");}
-        }}
-       >
-        <Text style={[s.modeButtonText,{color:C.blue}]}>{busy===("sync-"+u.id)?"Syncing…":"Sync Balance"}</Text>
-       </Pressable>
        <Pressable
         disabled={busy===u.id}
         style={[s.modeButton,mode==="active"&&s.modeActive]}
