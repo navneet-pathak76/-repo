@@ -412,7 +412,7 @@ export default function Home() {
     }
 
     if (type === "sell" && parsed < MIN_USDT) {
-      Alert.alert("Minimum withdrawal", "Minimum withdrawal is 50 USDT.");
+      Alert.alert("Minimum withdrawal", "Minimum withdrawal is 20 USDT.");
       return;
     }
 
@@ -619,13 +619,13 @@ export default function Home() {
                 <View style={styles.quote}>
                   <Text style={styles.quoteLabel}>YOU RECEIVE</Text>
                   <Text style={styles.quoteValue}>{usdtAmount} USDT</Text>
-                  <Text style={styles.minimumHint}>Minimum: 50 USDT (₹{MIN_INR.toFixed(0)})</Text>
+                  <Text style={styles.minimumHint}>Minimum: 20 USDT (₹{MIN_INR.toFixed(0)})</Text>
                 </View>
               ) : (
                 <View style={styles.quote}>
                   <Text style={styles.quoteLabel}>WITHDRAWAL</Text>
                   <Text style={styles.quoteValue}>Request INR withdrawal</Text>
-                  <Text style={styles.minimumHint}>Minimum withdrawal: 50 USDT</Text>
+                  <Text style={styles.minimumHint}>Minimum withdrawal: 20 USDT</Text>
                 </View>
               )}
 
