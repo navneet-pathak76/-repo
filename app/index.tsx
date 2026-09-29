@@ -351,7 +351,7 @@ export default function Home() {
       ]
     );
   }, [user, updateAvailable, updatePromptShown, release]);
-  const MIN_USDT = 50;
+  const MIN_USDT = 20;
   const MIN_INR = MIN_USDT * rate;
 
   const usdtAmount = useMemo(() => {
