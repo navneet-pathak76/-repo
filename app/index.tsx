@@ -407,7 +407,7 @@ export default function Home() {
     }
 
     if (type === "buy" && parsed < MIN_INR) {
-      Alert.alert("Minimum buy amount", "Minimum buy amount is ₹" + MIN_INR.toFixed(0) + " (50 USDT).");
+      Alert.alert("Minimum buy amount", "Minimum buy amount is ₹" + MIN_INR.toFixed(0) + " (20 USDT).");
       return;
     }
 
@@ -591,7 +591,7 @@ export default function Home() {
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="decimal-pad"
-                placeholder={tab === "buy" ? "Minimum ₹" + MIN_INR.toFixed(0) : "Minimum 50 USDT"}
+                placeholder={tab === "buy" ? "Minimum ₹" + MIN_INR.toFixed(0) : "Minimum 20 USDT"}
                 placeholderTextColor="#A5A8B0"
                 style={styles.input}
               />
